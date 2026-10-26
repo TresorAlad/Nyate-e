@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+
+<html lang="fr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Sora:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-error-container": "#93000a", "surface-variant": "#dfe7bf", "surface-dim": "#d6deb7", "on-background": "#181e06", "on-secondary": "#ffffff", "surface-container-highest": "#dfe7bf", "surface-container": "#eaf2ca", "on-error": "#ffffff", "inverse-primary": "#ffb3b0", "on-surface-variant": "#544342", "surface": "#f6fed5", "background": "#f6fed5", "on-secondary-container": "#79363c", "surface-container-lowest": "#ffffff", "secondary-fixed": "#ffdada", "tertiary-fixed": "#ccebc6", "primary-fixed": "#ffdad8", "on-primary-container": "#f79592", "on-primary": "#ffffff", "outline": "#877271", "surface-container-high": "#e4ecc5", "on-secondary-fixed": "#3b070f", "on-primary-fixed": "#3e0408", "on-tertiary": "#ffffff", "inverse-on-surface": "#edf5cd", "inverse-surface": "#2c3318", "primary-fixed-dim": "#ffb3b0", "tertiary-fixed-dim": "#b0cfab", "tertiary-container": "#2f492e", "outline-variant": "#dac1bf", "on-tertiary-fixed": "#07200a", "primary-container": "#732c2c", "on-primary-fixed-variant": "#782f2f", "on-tertiary-fixed-variant": "#334d32", "surface-bright": "#f6fed5", "surface-tint": "#954645", "surface-container-low": "#f0f8d0", "secondary-container": "#fda3a8", "on-surface": "#181e06", "secondary": "#90494e", "error": "#ba1a1a", "secondary-fixed-dim": "#ffb2b6", "tertiary": "#19321a", "error-container": "#ffdad6", "on-secondary-fixed-variant": "#733238", "on-tertiary-container": "#9ab895", "primary": "#561618" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "gutter-mobile": "1rem", "space-xs": "0.375rem", "space-xl": "3.5rem", "margin-mobile": "1.25rem", "space-md": "1.25rem", "space-sm": "0.75rem", "space-lg": "2rem", "margin": "3rem", "gutter": "1.5rem" }, "fontFamily": { "body-sm": [ "Sora" ], "headline-md": [ "Newsreader" ], "label-md": [ "Sora" ], "display-lg": [ "Newsreader" ], "headline-lg-mobile": [ "Newsreader" ], "label-sm": [ "Sora" ], "display-lg-mobile": [ "Newsreader" ], "headline-sm": [ "Newsreader" ], "body-md": [ "Sora" ], "body-lg": [ "Sora" ], "headline-lg": [ "Newsreader" ] }, "fontSize": { "body-sm": [ "0.8125rem", { "lineHeight": "1.375rem", "fontWeight": "400" } ], "headline-md": [ "1.75rem", { "lineHeight": "2.25rem", "fontWeight": "500" } ], "label-md": [ "0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0.02em", "fontWeight": "600" } ], "display-lg": [ "3.5rem", { "lineHeight": "4.25rem", "letterSpacing": "-0.02em", "fontWeight": "400" } ], "headline-lg-mobile": [ "1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.01em", "fontWeight": "500" } ], "label-sm": [ "0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.04em", "fontWeight": "500" } ], "display-lg-mobile": [ "2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.01em", "fontWeight": "400" } ], "headline-sm": [ "1.25rem", { "lineHeight": "1.75rem", "fontWeight": "600" } ], "body-md": [ "0.9375rem", { "lineHeight": "1.625rem", "fontWeight": "400" } ], "body-lg": [ "1.125rem", { "lineHeight": "1.875rem", "fontWeight": "400" } ], "headline-lg": [ "2.5rem", { "lineHeight": "3rem", "letterSpacing": "-0.015em", "fontWeight": "500" } ] } } } };</script></head><body class="bg-background font-body-md text-body-md text-on-surface"><header class="fixed top-0 left-0 right-0 z-50 bg-primary shadow-[0_4px_20px_rgba(66,12,20,0.12)]"><div class="h-20 w-full px-margin flex items-center justify-between"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm"><div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center"><span class="material-symbols-outlined text-primary text-[24px]">balance</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-surface tracking-wide leading-none">Nyatefe</span><span class="font-label-sm text-label-sm text-primary-fixed-dim tracking-wider uppercase mt-0.5">Droit Togolais</span></div></div><div class="hidden xl:flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-primary-container text-on-primary"><span class="material-symbols-outlined text-[16px] text-tertiary-fixed">gavel</span><span class="font-label-sm text-label-sm text-surface">Juridiction : République Togolaise</span><span class="material-symbols-outlined text-[16px] text-primary-fixed-dim">expand_more</span></div></div><nav class="hidden lg:flex items-center gap-space-xs" data-active-classes="text-surface font-semibold bg-primary-container rounded-lg"><a aria-current="page" class="px-space-sm py-2 transition-colors text-surface font-semibold bg-primary-container rounded-lg" data-path="accueil" href="#">Accueil</a><a class="px-space-sm py-2 font-label-md text-label-md text-primary-fixed-dim hover:text-surface transition-colors" data-path="assistant-juridique" href="#">Assistant Juridique</a><a class="px-space-sm py-2 font-label-md text-label-md text-primary-fixed-dim hover:text-surface transition-colors" data-path="bibliotheque-juridique" href="#">Bibliothèque Juridique</a><a class="px-space-sm py-2 font-label-md text-label-md text-primary-fixed-dim hover:text-surface transition-colors" data-path="tableau-de-bord" href="#">Tableau de bord</a></nav><div class="flex items-center gap-space-md"><div class="hidden sm:flex flex-col items-end"><span class="font-label-md text-label-md text-surface">Maître Koffi</span><span class="font-label-sm text-label-sm text-tertiary-fixed">Barreau de Lomé</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-20 bg-background"><div class="flex flex-col w-full">
+<!-- Interactive Prompt & Hero Section with Editorial Asymmetry -->
+<section class="relative w-full px-margin py-space-xl overflow-hidden">
+<div class="max-w-7xl mx-auto flex flex-col gap-space-xl">
+<!-- Top Eyebrow / Tagline Indicator -->
+<div class="flex items-center gap-space-sm">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-on-surface">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-primary font-semibold">Nyatefe • IA Juridique Spécialisée</span>
+</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant italic">« La vérité juridique à la portée de tous. »</span>
+</div>
+<!-- Main Headline & Subtitle split -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-end">
+<div class="lg:col-span-8 flex flex-col gap-space-sm">
+<h1 class="font-display-lg text-display-lg text-primary tracking-tight">
+            Le droit togolais, <br/>
+<span class="italic font-display-lg text-primary-container font-normal">plus accessible.</span>
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mt-space-xs">
+            Posez votre question. Obtenez une explication claire, appuyée sur des sources vérifiées issues du Journal Officiel et des juridictions togolaises.
+          </p>
+</div>
+<!-- Action Panel & Stats Preview -->
+<div class="lg:col-span-4 flex flex-col gap-space-md lg:items-end">
+<div class="flex flex-col sm:flex-row lg:flex-col w-full gap-space-sm">
+<button class="w-full flex items-center justify-center gap-space-xs px-space-lg py-3.5 bg-primary-container text-surface rounded-lg shadow-md hover:bg-primary transition-all duration-200" onclick="document.getElementById('prompt-input').focus()">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+<span class="font-label-md text-label-md">Poser une question juridique</span>
+</button>
+<a class="w-full flex items-center justify-center gap-space-xs px-space-lg py-3.5 bg-surface-container text-primary-container rounded-lg shadow-sm hover:bg-surface-variant transition-all duration-200" href="#textes-de-loi">
+<span class="material-symbols-outlined text-[20px]">menu_book</span>
+<span class="font-label-md text-label-md">Explorer les textes de loi</span>
+</a>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary">verified</span>
+<span class="font-label-sm text-label-sm">Codes togolais 2025</span>
+</div>
+<span class="text-outline-variant">•</span>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary">library_books</span>
+<span class="font-label-sm text-label-sm">Journal Officiel certifié</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Live Search & Interactive Consultation Console -->
+<div class="relative w-full rounded-xl bg-surface-container-lowest p-space-md lg:p-space-lg shadow-xl">
+<div class="flex flex-col gap-space-md">
+<div class="flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary-container text-[20px]">psychology</span>
+<span class="font-headline-sm text-headline-sm text-primary">Requête en langage naturel</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-1 rounded-full bg-surface text-primary-container font-label-sm text-label-sm">Lomé, RT</span>
+<span class="px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-semibold">Mode Délibéré • Actif</span>
+</div>
+</div>
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-4 pr-32 rounded-lg font-body-md text-body-md placeholder:text-outline focus:outline-none focus:bg-surface transition-colors" id="prompt-input" placeholder="Ex. : Quelle est la procédure d'immatriculation d'un terrain coutumier selon le Code Foncier 2018 ?" type="text"/>
+<div class="absolute right-3 flex items-center gap-1">
+<button class="flex items-center gap-1 px-4 py-2 bg-primary-container text-surface rounded-lg font-label-md text-label-md hover:bg-primary transition-colors" id="send-prompt-btn">
+<span>Consulter</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Suggested Rapid Prompts -->
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Sujets récurrents :</span>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors font-label-sm text-label-sm" onclick="setQuery('Quelles sont les formalités de l\'attestation de détention coutumière (ADC) ?')">Attestation coutumière (ADC)</button>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors font-label-sm text-label-sm" onclick="setQuery('Partage successoral en l\'absence de testament selon le Code des Personnes et de la Famille')">Dévolution successorale</button>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors font-label-sm text-label-sm" onclick="setQuery('Création de SARL unipersonnelle au CFE Lomé : exigences OHADA')">Création SARU &amp; OHADA</button>
+</div>
+</div>
+<!-- Simulated Response Live Preview Box (Dynamically Revealable) -->
+<div class="hidden mt-space-md p-space-md rounded-lg bg-surface-container flex flex-col gap-space-sm animate-fadeIn" id="ai-response-box">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary">check_circle</span>
+<span class="font-label-md text-label-md text-primary font-semibold">Analyse préliminaire • Journal Officiel n° 24 bis</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Conformité Loi N° 2018-005</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface" id="ai-response-text">
+            En vertu de la Loi N° 2018-005 du 14 juin 2018 portant Code Foncier et Domanial en République Togolaise, toute reconnaissance des droits fonciers coutumiers exige l'établissement préalable d'un plan de bornage contradictoire par un géomètre agréé, suivi du visa du Maire ou du Préfet territorialement compétent.
+          </p>
+<div class="flex items-center gap-space-sm pt-2">
+<span class="px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-semibold">Code Foncier • Art. 143 à 147</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-on-surface-variant font-label-sm text-label-sm">Jurisprudence Tribunal de Lomé 2023</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Editorial Section: Methodology (Analyser, Rechercher, Vérifier) -->
+<section class="w-full px-margin py-space-xl bg-surface-container-low">
+<div class="max-w-7xl mx-auto flex flex-col gap-space-lg">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs max-w-xl">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-primary-container font-semibold">Rigueur Délibérative</span>
+<h2 class="font-headline-lg text-headline-lg text-primary">Trois étapes vers la certitude juridique</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-md">
+          Chaque réponse synthétisée par Nyatefe traverse un protocole herméneutique strict qui empêche les hallucinations et garantit l'alignement sur le droit togolais positif.
+        </p>
+</div>
+<!-- 3-Column Card Layout -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg">
+<!-- Step 1: Analyser -->
+<div class="group relative flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-md hover:shadow-xl transition-all duration-300">
+<div class="flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<span class="font-headline-md text-headline-md text-outline-variant font-serif">01</span>
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[24px]">dialpad</span>
+</div>
+</div>
+<div class="flex flex-col gap-space-xs">
+<h3 class="font-headline-sm text-headline-sm text-primary">1. Analyser</h3>
+<p class="font-label-md text-label-md text-primary-container font-medium">Compréhension &amp; qualification juridique précise</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">
+                Décomposition contextuelle du litige ou de la question posée. L’algorithme identifie la branche concernée (civil, coutumier, pénal, commercial) et extrait les faits matériels pertinents.
+              </p>
+</div>
+</div>
+<div class="mt-space-lg pt-space-sm flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-label-sm text-label-sm text-on-surface">Extraction de concepts &amp; faits juridiques</span>
+</div>
+</div>
+<!-- Step 2: Rechercher -->
+<div class="group relative flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-md hover:shadow-xl transition-all duration-300">
+<div class="flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<span class="font-headline-md text-headline-md text-outline-variant font-serif">02</span>
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[24px]">travel_explore</span>
+</div>
+</div>
+<div class="flex flex-col gap-space-xs">
+<h3 class="font-headline-sm text-headline-sm text-primary">2. Rechercher</h3>
+<p class="font-label-md text-label-md text-primary-container font-medium">Exploration rigoureuse des codes et décrets en vigueur</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">
+                Indexation exhaustive de la législation togolaise en vigueur, des arrêtés ministériels, des Actes Uniformes OHADA et des décisions rendues par les juridictions de première instance, d'appel et la Cour Suprême.
+              </p>
+</div>
+</div>
+<div class="mt-space-lg pt-space-sm flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-label-sm text-label-sm text-on-surface">Base vectorielle souveraine Togo</span>
+</div>
+</div>
+<!-- Step 3: Vérifier -->
+<div class="group relative flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-md hover:shadow-xl transition-all duration-300">
+<div class="flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<span class="font-headline-md text-headline-md text-outline-variant font-serif">03</span>
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[24px]">verified_user</span>
+</div>
+</div>
+<div class="flex flex-col gap-space-xs">
+<h3 class="font-headline-sm text-headline-sm text-primary">3. Vérifier</h3>
+<p class="font-label-md text-label-md text-primary-container font-medium">Contrôle croisé et conformité avec le Journal Officiel</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">
+                Vérification de la validité temporelle (lois abrogées vs lois consolidées). Chaque réponse est annotée de la mention exacte du numéro de page, de l'année et de l'article officiel.
+              </p>
+</div>
+</div>
+<div class="mt-space-lg pt-space-sm flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm text-tertiary font-semibold">Traçabilité 100% Journal Officiel</span>
+</div>
+</div>
+</div>
+<!-- Trust Visual Banner -->
+<div class="rounded-xl bg-surface-container p-space-md flex flex-col sm:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[28px] text-primary">policy</span>
+<div>
+<span class="font-label-md text-label-md text-primary font-semibold block">Indépendance et Déontologie</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">L'outil Nyatefe assiste la réflexion des justiciables et juristes sans remplacer la consultation formelle d'un avocat inscrit au Barreau de Lomé.</span>
+</div>
+</div>
+<a class="shrink-0 font-label-sm text-label-sm text-primary-container hover:underline font-semibold flex items-center gap-1" href="#charte">
+<span>Lire la charte éthique</span>
+<span class="material-symbols-outlined text-[14px]">open_in_new</span>
+</a>
+</div>
+</div>
+</section>
+<!-- Visual Break / Photographic Editorial Grid -->
+<section class="w-full px-margin py-space-xl">
+<div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-center">
+<!-- Asymmetric Image Duo -->
+<div class="lg:col-span-6 grid grid-cols-2 gap-space-md">
+<div class="flex flex-col gap-space-md">
+<div class="h-64 rounded-xl overflow-hidden shadow-lg relative bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A dignified judicial library in Lomé Togo with leather-bound legal folios, dark mahogany desks, and warm ambient sunlight filtering through louvers in tones of deep brown, parchment cream, and subtle muted sage green." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCn6Ww0EeHltqLCs9n22YgIzHzQq6LpNhj6lrbElEZx6DGazSZokJNFqjFAAn7JT8dLoP7SrEcbR-FrN5vHkHKQHVy90o2qpfmozPxkoWEL-GiPCpocKbnhyTKWqYVpF2PD5N9vEE3NzfPpQK5rK4FpQyZuwjAXry_JddC8m7ezQKReMjSH6KX2bJiSIOErR7XSJIlc86BFFm6cW_Mlzla1N_skcqZegF5G_bmlPWU6ymavbd25DQP0rg"/>
+<div class="absolute bottom-2 left-2 px-2 py-1 rounded bg-primary text-surface font-label-sm text-label-sm">Archives Législatives</div>
+</div>
+<div class="p-space-md rounded-xl bg-surface-container-high flex flex-col gap-2">
+<span class="font-headline-sm text-headline-sm text-primary font-serif">1960 — 2025</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Indexation continue des actes législatifs promulgués depuis l'indépendance de la République Togolaise.</p>
+</div>
+</div>
+<div class="flex flex-col gap-space-md pt-8">
+<div class="p-space-md rounded-xl bg-surface-container-highest flex flex-col gap-2">
+<span class="font-headline-sm text-headline-sm text-primary">12 400+</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Décisions de justice et textes réglementaires togolais indexés dans notre modèle délibératif.</p>
+</div>
+<div class="h-64 rounded-xl overflow-hidden shadow-lg relative bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A calm architectural view of the Palais de Justice courthouse in Togo with warm terra-cotta, rich bitter chocolate textures, cream stone facade, clean shadows, and tropical palm foliage framed in serene daylight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyCLNqEM6r2px8zHo-BcCbviexZ8E6XbTcXCRXYoycHghZTWNAXPSjiJ4Bo7oMBXYkVWBqhZPgf1S7XlMVKi9GpTdHUggzqXtrQIKeDT5GesJmtri2-oUywEgentwjF8jKdyKyQg1ggwUR5nFF7pPGf7p1lAWsnteqdSOfvgM_fQE045iiTy1cBFHakxwPUtdpupYabneLqXUzFUlGAXPTnbVXoXr9cHX3kvVSG0xCKYcNYznZoIZObg"/>
+<div class="absolute bottom-2 left-2 px-2 py-1 rounded bg-primary text-surface font-label-sm text-label-sm">Palais de Justice, Lomé</div>
+</div>
+</div>
+</div>
+<!-- Descriptive Typography & Proof Points -->
+<div class="lg:col-span-6 flex flex-col gap-space-md lg:pl-space-md">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-primary-container font-semibold">Une Technologie Souveraine</span>
+<h2 class="font-display-lg-mobile lg:font-headline-lg text-primary leading-tight">
+          L'intelligence artificielle dédiée aux spécificités de notre droit national.
+        </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">
+          Le droit togolais combine de façon unique droit civil codifié hérité, réglementations régionales OHADA, et coutumes orales locales reconnues par les tribunaux traditionnels. Nyatefe réconcilie ces univers dans un langage clair.
+        </p>
+<!-- Inline SVG Data Chart: Precision & Source Distribution -->
+<div class="mt-space-sm p-space-md rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-primary font-semibold">Répartition des sources de référence</span>
+<span class="font-label-sm text-label-sm text-tertiary font-semibold">100% vérifié</span>
+</div>
+<!-- Minimal SVG Horizontal Composition -->
+<div class="w-full">
+<svg class="w-full h-8 rounded-lg overflow-hidden" viewbox="0 0 400 32" xmlns="http://www.w3.org/2000/svg">
+<!-- Journal Officiel & Codes (45%) -->
+<rect fill="#732C2C" height="32" width="180" x="0" y="0"></rect>
+<!-- OHADA & Traités (25%) -->
+<rect fill="#ABA361" height="32" width="100" x="182" y="0"></rect>
+<!-- Jurisprudence Cours & Tribunaux (20%) -->
+<rect fill="#BAD9B5" height="32" width="80" x="284" y="0"></rect>
+<!-- Coutume & Pratiques Foncières (10%) -->
+<rect fill="#561618" height="32" width="34" x="366" y="0"></rect>
+</svg>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
+<span class="font-label-sm text-label-sm text-on-surface">Codes &amp; J.O. (45%)</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-outline"></span>
+<span class="font-label-sm text-label-sm text-on-surface">OHADA (25%)</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary-fixed"></span>
+<span class="font-label-sm text-label-sm text-on-surface">Jurisprudence (20%)</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+<span class="font-label-sm text-label-sm text-on-surface">Coutumier (10%)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Piliers du Droit Local (Core Domains) -->
+<section class="w-full px-margin py-space-xl bg-surface-container" id="textes-de-loi">
+<div class="max-w-7xl mx-auto flex flex-col gap-space-xl">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs max-w-2xl">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-primary-container font-semibold">Domaines d'Expertise</span>
+<h2 class="font-headline-lg text-headline-lg text-primary">Les piliers majeurs du droit togolais</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Explorez les corpus juridiques cruciaux répondant aux litiges de la vie quotidienne et aux transactions d’affaires au Togo.
+          </p>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sélectionnez un pilier pour tester une consultation</span>
+</div>
+</div>
+<!-- Domain Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg">
+<!-- Pillar 1: Foncier & Propriété coutumière -->
+<div class="flex flex-col rounded-xl bg-surface-container-lowest p-space-lg shadow-md hover:shadow-xl transition-all duration-300">
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[26px]">foundation</span>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-primary-container font-label-sm text-label-sm font-semibold">Loi 2018-005</span>
+</div>
+<div class="flex flex-col gap-space-xs mt-space-md">
+<h3 class="font-headline-sm text-headline-sm text-primary">Foncier &amp; Propriété Coutumière</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Sécurisation des titres fonciers, conversion des droits coutumiers, litiges de double vente, rôle du chef de collectivité et procédures d'expropriation pour utilité publique.
+            </p>
+</div>
+<div class="mt-space-md pt-space-sm flex flex-col gap-2">
+<div class="flex items-center gap-2 text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check</span>
+<span>Attestation de Détention Coutumière (ADC)</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check</span>
+<span>Procédure de réquisition d'immatriculation</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check</span>
+<span>Contentieux foncier devant le Tribunal de Lomé</span>
+</div>
+</div>
+<div class="mt-space-lg pt-space-sm">
+<button class="w-full py-2.5 px-space-sm rounded-lg bg-surface-container-high text-primary font-label-md text-label-md hover:bg-primary-container hover:text-surface transition-colors flex items-center justify-center gap-1" onclick="setQuery('Quelles sont les conditions de validité d\'une vente d\'un terrain coutumier par le représentant d\'une collectivité à Tsévié ?')">
+<span>Interroger sur le foncier</span>
+<span class="material-symbols-outlined text-[16px]">arrow_outward</span>
+</button>
+</div>
+</div>
+<!-- Pillar 2: Famille & Successions -->
+<div class="flex flex-col rounded-xl bg-surface-container-lowest p-space-lg shadow-md hover:shadow-xl transition-all duration-300">
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[26px]">family_restroom</span>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-primary-container font-label-sm text-label-sm font-semibold">Code des Personnes</span>
+</div>
+<div class="flex flex-col gap-space-xs mt-space-md">
+<h3 class="font-headline-sm text-headline-sm text-primary">Famille &amp; Successions</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Statut matrimonial, célébrations coutumières et civiles, liquidation de communauté, droits du conjoint survivant et partage successoral équitable entre héritiers.
+            </p>
+</div>
+<div class="mt-space-md pt-space-sm flex flex-col gap-2">
+<div class="flex items-center gap-2 text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check</span>
+<span>Mariage civil vs reconnaissance coutumière</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check</span>
+<span>Dévolution légale et quotité disponible</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check</span>
+<span>Jugement d'hérédité &amp; conseil de famille</span>
+</div>
+</div>
+<div class="mt-space-lg pt-space-sm">
+<button class="w-full py-2.5 px-space-sm rounded-lg bg-surface-container-high text-primary font-label-md text-label-md hover:bg-primary-container hover:text-surface transition-colors flex items-center justify-center gap-1" onclick="setQuery('Comment se déroule la succession en présence d\'enfants nés hors mariage selon le Code des Personnes et de la Famille togolais ?')">
+<span>Interroger sur la famille</span>
+<span class="material-symbols-outlined text-[16px]">arrow_outward</span>
+</button>
+</div>
+</div>
+<!-- Pillar 3: Droit Commercial & OHADA -->
+<div class="flex flex-col rounded-xl bg-surface-container-lowest p-space-lg shadow-md hover:shadow-xl transition-all duration-300">
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[26px]">account_balance</span>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-primary-container font-label-sm text-label-sm font-semibold">Espace OHADA</span>
+</div>
+<div class="flex flex-col gap-space-xs mt-space-md">
+<h3 class="font-headline-sm text-headline-sm text-primary">Droit Commercial &amp; OHADA</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Création d'entreprises, baux à usage professionnel, recouvrement de créances, voies d'exécution, sûretés et gouvernance des sociétés commerciales au Togo.
+            </p>
+</div>
+<div class="mt-space-md pt-space-sm flex flex-col gap-2">
+<div class="flex items-center gap-2 text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check</span>
+<span>Immatriculation RCCM au CFE Togo</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check</span>
+<span>Procédure d'injonction de payer OHADA</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check</span>
+<span>Régime des contrats commerciaux transfrontaliers</span>
+</div>
+</div>
+<div class="mt-space-lg pt-space-sm">
+<button class="w-full py-2.5 px-space-sm rounded-lg bg-surface-container-high text-primary font-label-md text-label-md hover:bg-primary-container hover:text-surface transition-colors flex items-center justify-center gap-1" onclick="setQuery('Quelles sont les mentions obligatoires du bail à usage professionnel selon l\'Acte Uniforme OHADA applicable à Lomé ?')">
+<span>Interroger sur le commerce</span>
+<span class="material-symbols-outlined text-[16px]">arrow_outward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Legal Excerpt / Interactive Sample Showcase -->
+<section class="w-full px-margin py-space-xl">
+<div class="max-w-7xl mx-auto rounded-xl bg-primary text-surface p-space-lg lg:p-space-xl flex flex-col lg:flex-row items-center justify-between gap-space-lg shadow-xl">
+<div class="flex flex-col gap-space-sm max-w-2xl">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-primary-fixed-dim font-semibold">Extrait de Corpus Officiel</span>
+<h3 class="font-headline-lg text-headline-lg text-surface font-serif">
+          « Nul ne peut être contraint de céder sa propriété, si ce n'est pour cause d'utilité publique... »
+        </h3>
+<p class="font-body-md text-body-md text-surface-variant">
+          Article 27 de la Constitution de la IVe République Togolaise et Article 14 du Code Foncier et Domanial. Nyatefe fournit des liens directs et certifiés vers les feuillets officiels.
+        </p>
+</div>
+<div class="shrink-0 flex flex-col sm:flex-row gap-space-sm w-full lg:w-auto">
+<button class="px-space-lg py-3.5 bg-surface text-primary rounded-lg font-label-md text-label-md hover:bg-surface-variant transition-colors flex items-center justify-center gap-2" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); document.getElementById('prompt-input').focus();">
+<span class="material-symbols-outlined text-[20px]">search</span>
+<span>Démarrer une recherche</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<script>
+  function setQuery(text) {
+    const input = document.getElementById('prompt-input');
+    if (input) {
+      input.value = text;
+      input.focus();
+      triggerAiResponse(text);
+    }
+  }
+
+  function triggerAiResponse(query) {
+    const box = document.getElementById('ai-response-box');
+    const resp = document.getElementById('ai-response-text');
+    if (!box || !resp) return;
+
+    box.classList.remove('hidden');
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    if (query.includes('coutumière') || query.includes('terrain') || query.includes('foncier')) {
+      resp.innerText = "D'après la Loi N° 2018-005 portant Code Foncier et Domanial (Togo), toute cession de terre coutumière exige le consentement prouvé de l'ensemble des mandataires de la collectivité familiale, acté par procès-verbal sous peine de nullité absolue (Art. 67). L'Attestation de Détention Coutumière (ADC) doit être légalisée par l'autorité communale compétente.";
+    } else if (query.includes('succession') || query.includes('mariage') || query.includes('famille')) {
+      resp.innerText = "Selon le Code des Personnes et de la Famille togolais (modifié en 2014), les enfants nés hors mariage bénéficient de droits successoraux équivalents aux enfants légitimes dès lors que la filiation paternelle ou maternelle est juridiquement établie. Le conjoint survivant conserve un droit d'usufruit protégé sur le domicile conjugal.";
+    } else {
+      resp.innerText = "Conformément à l'Acte Uniforme OHADA relatif au droit des sociétés commerciales et du GIE, une SARL peut être constituée par un associé unique. Le capital minimum n'est plus assujetti à un plancher rigide de 1 000 000 FCFA au Togo (Décret N° 2014-119/PR), et la formalité s'accomplit en 24h au guichet unique du Centre de Formalités des Entreprises (CFE).";
+    }
+  }
+
+  const sendBtn = document.getElementById('send-prompt-btn');
+  if (sendBtn) {
+    sendBtn.addEventListener('click', () => {
+      const val = document.getElementById('prompt-input').value;
+      if (val.trim()) {
+        triggerAiResponse(val);
+      }
+    });
+  }
+
+  const promptInput = document.getElementById('prompt-input');
+  if (promptInput) {
+    promptInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const val = e.target.value;
+        if (val.trim()) {
+          triggerAiResponse(val);
+        }
+      }
+    });
+  }
+</script></main><footer class="w-full bg-surface-container py-space-xl"><div class="w-full px-margin flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-primary">Nyatefe</span><span class="font-body-sm text-body-sm text-on-surface-variant">— Portail de doctrine, législation et jurisprudence togolaises</span></div><div class="flex items-center gap-space-lg"><span class="font-label-sm text-label-sm text-on-surface-variant">© 2025 République Togolaise • Tous droits réservés</span><span class="font-label-sm text-label-sm text-tertiary font-medium">Conformité Barreau de Lomé</span></div></div></footer></body></html>

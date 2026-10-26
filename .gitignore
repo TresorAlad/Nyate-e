@@ -1,0 +1,13 @@
+.cursor/mcp.json
+backend/.env
+.env
+*.pem
+Nyatefe_key.pem
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+frontend/dist/
+.DS_Store
+*.local

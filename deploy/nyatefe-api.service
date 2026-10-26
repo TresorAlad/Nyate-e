@@ -1,0 +1,16 @@
+[Unit]
+Description=Nyatefe Flask API
+After=network.target postgresql.service ollama.service
+Wants=postgresql.service ollama.service
+
+[Service]
+User=azureuser
+Group=azureuser
+WorkingDirectory=/opt/nyatefe/backend
+EnvironmentFile=/opt/nyatefe/backend/.env
+ExecStart=/opt/nyatefe/backend/.venv/bin/gunicorn -w 1 -b 127.0.0.1:8000 --timeout 180 wsgi:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

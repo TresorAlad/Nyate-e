@@ -1,0 +1,18 @@
+def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
+    normalized = " ".join(text.split())
+    if not normalized:
+        return []
+
+    if len(normalized) <= chunk_size:
+        return [normalized]
+
+    chunks: list[str] = []
+    start = 0
+    while start < len(normalized):
+        end = min(start + chunk_size, len(normalized))
+        chunks.append(normalized[start:end])
+        if end >= len(normalized):
+            break
+        start = max(0, end - chunk_overlap)
+
+    return chunks
