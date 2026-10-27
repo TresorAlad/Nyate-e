@@ -52,18 +52,18 @@ export function titleFromQuestion(question: string): string {
   return `${compact.slice(0, 45).trim()}...`
 }
 
-export function listConversations(userId: string): Conversation[] {
+export function listConversationsLocal(userId: string): Conversation[] {
   return [...readAll(userId)].sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
-export function getConversation(
+export function getConversationLocal(
   userId: string,
   id: string,
 ): Conversation | null {
   return readAll(userId).find((item) => item.id === id) ?? null
 }
 
-export function upsertConversation(
+export function upsertConversationLocal(
   userId: string,
   conversation: Conversation,
 ): void {
@@ -71,14 +71,14 @@ export function upsertConversation(
   writeAll(userId, [conversation, ...others])
 }
 
-export function deleteConversation(userId: string, id: string): void {
+export function deleteConversationLocal(userId: string, id: string): void {
   writeAll(
     userId,
     readAll(userId).filter((item) => item.id !== id),
   )
 }
 
-export function clearConversations(userId: string): void {
+export function clearConversationsLocal(userId: string): void {
   localStorage.removeItem(storageKey(userId))
 }
 

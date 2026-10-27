@@ -1,6 +1,10 @@
 import unittest
 
-from app.services.chat_intent import is_greeting_only, needs_legal_rag
+from app.services.chat_intent import (
+    is_casual_chitchat,
+    is_greeting_only,
+    needs_legal_rag,
+)
 
 
 class ChatIntentTests(unittest.TestCase):
@@ -12,6 +16,16 @@ class ChatIntentTests(unittest.TestCase):
     def test_legal_question_uses_rag(self) -> None:
         self.assertTrue(
             needs_legal_rag("Quelle peine pour vol simple au Togo ?", [])
+        )
+
+    def test_casual_life_skips_rag(self) -> None:
+        msg = "je viens de rentrer a la maison comme ca"
+        self.assertTrue(is_casual_chitchat(msg, []))
+        self.assertFalse(needs_legal_rag(msg, []))
+
+    def test_landlord_question_uses_rag(self) -> None:
+        self.assertTrue(
+            needs_legal_rag("mon proprietaire veut me mettre dehors", [])
         )
 
 

@@ -18,6 +18,7 @@ import {
   getAuthToken,
   getCachedUser,
 } from '../lib/auth-api'
+import { migrateLocalConversationsToServer } from '../lib/conversations-sync'
 
 type ProfileUpdateInput = {
   displayName?: string
@@ -60,7 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function bootstrap() {
       try {
         const sessionUser = await fetchCurrentUser()
-        if (!cancelled) setUser(sessionUser)
+        if (!cancelled) {
+          setUser(sessionUser)
+          void migrateLocalConversationsToServer(sessionUser.id)
+        }
       } catch {
         clearAuthSession()
         if (!cancelled) setUser(null)
@@ -78,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const data = await apiLogin(email, password)
     setUser(data.user)
+    void migrateLocalConversationsToServer(data.user.id)
     return data.user
   }, [])
 
@@ -91,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }) => {
       const data = await apiRegister(input)
       setUser(data.user)
+      void migrateLocalConversationsToServer(data.user.id)
       return data.user
     },
     [],

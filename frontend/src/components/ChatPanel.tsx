@@ -16,10 +16,11 @@ import {
   type SourceItem,
 } from '../lib/api'
 import { shortcutsForProfile } from '../lib/citizen-shortcuts'
+import { saveConversationRemote, fetchConversationById } from '../lib/conversations-api'
 import {
-  getConversation,
+  getConversationLocal,
   titleFromQuestion,
-  upsertConversation,
+  upsertConversationLocal,
   type StoredTurn,
 } from '../lib/conversations'
 import { consumePendingQuestion } from '../lib/pending-question'
@@ -81,12 +82,28 @@ function persistTurns(
   turns: ChatTurn[],
   titleSeed: string,
 ) {
-  upsertConversation(userId, {
+  const payload = {
     id: conversationId,
     title: titleFromQuestion(titleSeed),
     updatedAt: Date.now(),
     turns: toStoredTurns(turns),
+  }
+  void saveConversationRemote(payload).catch(() => {
+    upsertConversationLocal(userId, payload)
   })
+}
+
+function storedTurnsToChatTurns(
+  turns: StoredTurn[],
+  sanitize: (response: ChatResponse) => ChatResponse,
+): ChatTurn[] {
+  return turns.map((turn) => ({
+    id: turn.id,
+    question: turn.question,
+    status: turn.status === 'error' ? 'error' : 'ok',
+    answer: turn.answer ? sanitize(turn.answer) : undefined,
+    error: turn.error,
+  }))
 }
 
 export function ChatPanel({
@@ -129,40 +146,54 @@ export function ChatPanel({
   turnsRef.current = turns
 
   useEffect(() => {
-    if (skipLoadRef.current) {
-      skipLoadRef.current = false
-      if (turnsRef.current.length === 0 && user && activeConversationId) {
-        const stored = getConversation(user.id, activeConversationId)
-        if (stored?.turns.length) {
-          setTurns(
-            stored.turns.map((turn) => ({
-              ...turn,
-              status: turn.status,
-              answer: turn.answer
-                ? sanitizeChatResponse(turn.answer)
-                : turn.answer,
-            })),
-          )
+    let cancelled = false
+
+    function applyStoredTurns(storedTurns: StoredTurn[]) {
+      if (cancelled) return
+      setTurns(storedTurnsToChatTurns(storedTurns, sanitizeChatResponse))
+    }
+
+    async function loadConversation() {
+      if (skipLoadRef.current) {
+        skipLoadRef.current = false
+        if (turnsRef.current.length === 0 && user && activeConversationId) {
+          try {
+            const remote = await fetchConversationById(activeConversationId)
+            if (remote?.turns.length) {
+              applyStoredTurns(remote.turns)
+              return
+            }
+          } catch {
+            /* fallback local */
+          }
+          const stored = getConversationLocal(user.id, activeConversationId)
+          if (stored?.turns.length) {
+            applyStoredTurns(stored.turns)
+          }
         }
+        return
       }
-      return
+      if (!user || !activeConversationId) {
+        setTurns([])
+        return
+      }
+      try {
+        const remote = await fetchConversationById(activeConversationId)
+        if (remote) {
+          applyStoredTurns(remote.turns)
+          return
+        }
+      } catch {
+        /* fallback local */
+      }
+      const stored = getConversationLocal(user.id, activeConversationId)
+      applyStoredTurns(stored?.turns ?? [])
     }
-    if (!user || !activeConversationId) {
-      setTurns([])
-      return
+
+    void loadConversation()
+    return () => {
+      cancelled = true
     }
-    const stored = getConversation(user.id, activeConversationId)
-    setTurns(
-      stored
-        ? stored.turns.map((turn) => ({
-            ...turn,
-            status: turn.status,
-            answer: turn.answer
-              ? sanitizeChatResponse(turn.answer)
-              : turn.answer,
-          }))
-        : [],
-    )
   }, [activeConversationId, hideChatSources, user?.id, user?.role, variant])
 
   function commitTurns(boundId: string, next: ChatTurn[]) {
@@ -203,7 +234,7 @@ export function ChatPanel({
     const storedTurns =
       conversationIdRef.current === boundId && turnsRef.current.length > 0
         ? turnsRef.current
-        : (getConversation(user.id, boundId)?.turns.map((turn) => ({
+        : (getConversationLocal(user.id, boundId)?.turns.map((turn) => ({
             ...turn,
             status: turn.status,
           })) ?? [])

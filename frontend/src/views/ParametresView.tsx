@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { MaterialIcon } from '../components/shell/MaterialIcon'
 import type { AppRoute } from '../components/shell/SidebarNav'
 import { useAuth } from '../context/AuthContext'
-import { clearConversations } from '../lib/conversations'
+import { clearAllConversationsRemote } from '../lib/conversations-api'
+import { clearConversationsLocal } from '../lib/conversations'
 import { clearRecentQuestions } from '../lib/recent-questions'
 
 type ParametresViewProps = {
@@ -20,13 +21,19 @@ export function ParametresView({
   const { user } = useAuth()
   const [cleared, setCleared] = useState(false)
 
-  function handleClearHistory() {
+  async function handleClearHistory() {
     if (!user) return
     const confirmed = window.confirm(
-      'Supprimer tout l\'historique des conversations de cet appareil ?',
+      'Supprimer tout l\'historique des conversations de votre compte ?',
     )
     if (!confirmed) return
-    clearConversations(user.id)
+    try {
+      await clearAllConversationsRemote()
+    } catch {
+      window.alert('Impossible de supprimer l\'historique pour le moment.')
+      return
+    }
+    clearConversationsLocal(user.id)
     clearRecentQuestions()
     setCleared(true)
     onHistoryCleared?.()
@@ -41,7 +48,7 @@ export function ParametresView({
         Paramètres
       </h2>
       <p className="mt-2 font-body text-body-md text-on-surface-variant">
-        Gérez l&apos;historique local et les informations légales de Nyateƒe.
+        Gérez l&apos;historique lié à votre compte et les informations légales de Nyateƒe.
       </p>
 
       <section className="mt-8 rounded-2xl bg-surface-container-lowest p-5 shadow-sm">
@@ -52,8 +59,8 @@ export function ParametresView({
               Historique des conversations
             </h3>
             <p className="mt-1 font-body text-body-sm text-on-surface-variant">
-              Les échanges sont stockés sur cet appareil uniquement. Les supprimer
-              n&apos;efface pas votre compte.
+              Vos conversations sont enregistrées sur votre compte et retrouvées
+              sur chaque appareil où vous vous connectez.
             </p>
             <button
               type="button"
@@ -65,7 +72,7 @@ export function ParametresView({
             </button>
             {cleared ? (
               <p className="mt-2 font-body text-body-sm text-tertiary">
-                Historique effacé sur cet appareil.
+                Historique supprimé pour votre compte.
               </p>
             ) : null}
           </div>

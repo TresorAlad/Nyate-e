@@ -12,9 +12,9 @@ if TYPE_CHECKING:
     from app.services.agent_graph_service import AgentGraphService
 
 DISCLAIMER = (
-    "\n\n*Nyatefe oriente a partir de textes officiels. "
-    "L'IA peut se tromper : consultez un juriste ou un avocat inscrit au "
-    "Barreau du Togo avant toute decision ou action en justice.*"
+    "\n\n*Nyateƒe s'appuie sur des textes officiels. "
+    "Je peux me tromper : pour une decision importante, consultez un juriste "
+    "ou un avocat inscrit au Barreau du Togo.*"
 )
 
 

@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import type { AuthUser } from '../../lib/auth-types'
 import {
-  conversationGroupLabel,
-  deleteConversation,
-  listConversations,
-} from '../../lib/conversations'
+  deleteConversationRemote,
+  fetchConversationSummaries,
+  type ConversationSummary,
+} from '../../lib/conversations-api'
+import { conversationGroupLabel } from '../../lib/conversations'
 import { NyatefeLogoMark } from '../NyatefeLogoMark'
 import { AccountMenu } from './AccountMenu'
 import { MaterialIcon } from './MaterialIcon'
@@ -44,10 +45,23 @@ export function CitizenShell({
   children,
 }: CitizenShellProps) {
   const [isNavOpen, setIsNavOpen] = useState(false)
-  const conversations = useMemo(
-    () => listConversations(user.id),
-    [user.id, conversationsTick],
-  )
+  const [conversations, setConversations] = useState<ConversationSummary[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const items = await fetchConversationSummaries()
+        if (!cancelled) setConversations(items)
+      } catch {
+        if (!cancelled) setConversations([])
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [user.id, conversationsTick])
 
   useEffect(() => {
     setIsNavOpen(false)
@@ -85,9 +99,12 @@ export function CitizenShell({
   }
 
   function handleDelete(id: string) {
-    deleteConversation(user.id, id)
-    if (conversationId === id) onNewChat()
-    onConversationsChange()
+    void deleteConversationRemote(id)
+      .catch(() => undefined)
+      .finally(() => {
+        if (conversationId === id) onNewChat()
+        onConversationsChange()
+      })
   }
 
   return (

@@ -5,6 +5,10 @@ from app.config import load_settings
 from app.db import create_pool
 from app.routes.auth_routes import auth_bp, register_auth_routes
 from app.routes.chat import chat_bp, register_chat_routes
+from app.routes.conversation_routes import (
+    conversations_bp,
+    register_conversation_routes,
+)
 from app.routes.documents import documents_bp, register_document_routes
 from app.routes.health import health_bp, register_health_routes
 from app.routes.queue import queue_bp, register_queue_routes
@@ -46,6 +50,7 @@ def create_app() -> Flask:
     register_document_routes(documents_bp, pool, rag, settings)
     register_search_routes(search_bp, pool, rag)
     register_chat_routes(chat_bp, pool, rag, settings, agent_graph)
+    register_conversation_routes(conversations_bp, pool, settings)
 
     app.register_blueprint(auth_bp, url_prefix="/api")
     app.register_blueprint(health_bp, url_prefix="/api")
@@ -53,6 +58,7 @@ def create_app() -> Flask:
     app.register_blueprint(documents_bp, url_prefix="/api")
     app.register_blueprint(search_bp, url_prefix="/api")
     app.register_blueprint(chat_bp, url_prefix="/api")
+    app.register_blueprint(conversations_bp, url_prefix="/api")
 
     @app.teardown_appcontext
     def close_pool(_exc=None):

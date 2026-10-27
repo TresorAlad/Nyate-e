@@ -15,9 +15,11 @@ OUT_OF_SCOPE_ANSWER = (
 
 
 GREETING_ANSWER = (
-    "Bonjour. Je suis l'assistant Nyateƒe pour le droit togolais.\n\n"
-    "Décrivez votre situation ou posez une question concrète : "
-    "je m'appuierai sur les textes officiels enregistrés dans la plateforme."
+    "Bonjour ! Ravi de vous lire.\n\n"
+    "Je suis Nyateƒe, votre assistant pour le **droit togolais**. "
+    "Vous pouvez me raconter votre situation en quelques mots ou poser "
+    "une question précise : je m'appuie sur les textes officiels indexés "
+    "pour vous orienter."
 )
 
 

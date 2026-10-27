@@ -50,6 +50,38 @@ _LEGAL_HINTS = (
     "immatriculation",
     "attestation",
     "expropriation",
+    "proprietaire",
+    "propriétaire",
+    "locataire",
+    "expulsion",
+    "expulser",
+    "conge",
+    "congé",
+    "entreprise",
+    "declarer",
+    "déclarer",
+    "creer",
+    "créer",
+    "heritage",
+    "héritage",
+    "plainte",
+    "plaintes",
+    "victime",
+    "accident",
+    "contrat",
+    "employeur",
+    "salaire",
+    "licenci",
+)
+
+_CASUAL_CHITCHAT_RE = re.compile(
+    r"(?:^|\s)(?:"
+    r"je viens de|je suis rentre|rentrer a la maison|rentrer chez moi|"
+    r"comme ca|comme ça|rien de special|rien de spécial|"
+    r"juste pour discuter|on papote|ca va bien|ça va bien|"
+    r"merci beaucoup|bonne soiree|bonne soirée|bonne nuit"
+    r")(?:\s|$|[!.?,])",
+    re.IGNORECASE,
 )
 
 
@@ -101,6 +133,28 @@ def is_greeting_only(question: str) -> bool:
     return bool(_GREETING_RE.match(_normalize(raw)))
 
 
+def is_casual_chitchat(question: str, history: list[dict[str, str]]) -> bool:
+    raw = question.strip()
+    if not raw:
+        return False
+    normalized = _normalize(raw)
+    if any(hint in normalized for hint in _LEGAL_HINTS):
+        return False
+    if "?" in raw:
+        return False
+    if _GREETING_RE.match(normalized):
+        return True
+    if _CASUAL_CHITCHAT_RE.search(_normalize(raw)):
+        return True
+    words = re.findall(r"[a-z0-9']+", normalized)
+    if len(words) >= 5 and not history:
+        return True
+    if history and not _is_legal_follow_up(raw, words, history):
+        if len(words) >= 4:
+            return True
+    return False
+
+
 def needs_legal_rag(question: str, history: list[dict[str, str]]) -> bool:
     raw = question.strip()
     if not raw:
@@ -109,28 +163,28 @@ def needs_legal_rag(question: str, history: list[dict[str, str]]) -> bool:
     normalized = _normalize(raw)
     words = re.findall(r"[a-z0-9']+", normalized)
 
+    if _GREETING_RE.match(normalized):
+        return False
+
+    if is_casual_chitchat(question, history):
+        return False
+
     if any(hint in normalized for hint in _LEGAL_HINTS):
         return True
 
     if "?" in raw and len(words) >= 3:
         return True
 
-    if len(words) >= 6:
+    if history and _is_legal_follow_up(raw, words, history):
         return True
-
-    if _GREETING_RE.match(normalized):
-        return False
 
     if len(words) <= 2 and "?" not in raw:
         return False
 
-    if history and _is_legal_follow_up(raw, words, history):
+    if len(words) >= 6:
         return True
 
-    if len(words) <= 4 and "?" not in raw:
-        return False
-
-    return True
+    return False
 
 
 def _is_legal_follow_up(
