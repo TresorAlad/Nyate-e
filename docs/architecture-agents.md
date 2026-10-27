@@ -30,22 +30,85 @@ Question utilisateur
 
 Chaque étape peut être un **agent** (prompt + contraintes + sortie structurée JSON) orchestré par un **coordinateur** dans le backend.
 
-## État actuel (MVP)
+## Graphe full (production)
 
-| Agent cible | Implémenté ? | Code / comportement actuel |
-|-------------|--------------|----------------------------|
-| 1 Analyse | Partiel | Question brute envoyée au RAG ; pas de nœud dédié |
-| 2 Domaine | Non | Pas de classification `doc_type` / domaine avant recherche |
-| 3 Recherche | Oui | `RagService.search_similar`, embeddings `nomic-embed-text`, pgvector |
-| 4 Vérification | Partiel | Seuil `RAG_MIN_SIMILARITY` ; pas de second passage LLM |
-| 5 Réponse | Oui | `RagService._answer_question`, prompt système + extraits |
+Avec `AGENT_GRAPH_ENABLED=true` et `AGENT_GRAPH_MODE=full` :
 
-Point d'entrée API : `POST /api/chat` dans `backend/app/routes/chat.py` appelle aujourd'hui un **pipeline RAG monolithique** dans `rag_service.py`.
+| Etape | Composant | LLM |
+|-------|-----------|-----|
+| Analyste | `nodes/analyste.py` | Oui |
+| Routeur | `nodes/routeur.py` | Oui (specialistes disponibles uniquement) |
+| Specialiste | `nodes/specialiste.py` | Non (pgvector par domaine, sans fallback global) |
+| Indisponible | `nodes/specialiste_indisponible.py` | Non |
+| Synthese | `nodes/redacteur.py` | Oui |
+| Verificateur | `nodes/verificateur.py` | Oui |
+| Garde-fou | `nodes/garde_fou.py` | Non |
+
+Registre : `domains.yaml` + `specialist_registry.py` (chunks indexes par `metadata.domaine`).
+
+Variables : `AGENT_MAX_SOURCES=3`, `RAG_TOP_K=3`.
+
+Corpus v1 : penal, famille (2 versions), travail, affaires (CGI-OTR), constitution, donnees_personnelles. Ingestion : `backend/scripts/ingest_corpus_v1.sh`.
+
+## Phase 2 : agents par document
+
+Pipeline partage : [`backend/app/services/retrieval_pipeline.py`](../backend/app/services/retrieval_pipeline.py)
+
+| Mode (`AGENT_RETRIEVAL_MODE`) | Comportement |
+|-------------------------------|--------------|
+| `domain` | Recherches paralleles par domaine (`domains.yaml`) |
+| `document` | Catalogue DB + candidats vectoriels + recherches par `document_id` |
+| `hybrid` | Fusion domaine + document, deduplication par chunk |
+
+Fichiers cles :
+
+- [`document_router.py`](../backend/app/agents/document_router.py) : ciblage de documents
+- [`document_catalog.py`](../backend/app/agents/document_catalog.py) : cache catalogue
+- [`parallel_retrieval.py`](../backend/app/agents/parallel_retrieval.py) : agents document en parallele
+
+Backfill metadata chunks : `python backend/scripts/backfill_chunk_metadata.py` (depuis la racine du dépôt, avec le venv backend actif).
+
+## Phase 2 : streaming UI (SSE)
+
+Route : `POST /api/chat/stream` (requiert `AGENT_GRAPH_ENABLED=true`).
+
+Événements JSON (`data: {...}`) :
+
+- `phase` : `retrieval` ou `generation`
+- `meta` : mode, domaines, documents cibles
+- `sources` : extraits officiels
+- `token` : fragment de reponse
+- `done` : reponse complete + sources
+- `error` : message utilisateur
+
+Frontend : [`sendChatStream`](../frontend/src/lib/api.ts) avec repli sur `POST /api/chat`.
+
+Desactiver le stream cote UI : `VITE_CHAT_STREAM=false`.
+
+## Etat actuel
+
+| Agent | Fichier | Role |
+|-------|---------|------|
+| Analyste | `nodes/analyste.py` | Reformulation, clarification |
+| Routeur | `nodes/routeur.py` | Dispatch vers un specialiste couvert |
+| Specialiste | `nodes/specialiste.py` | Retrieval strict par domaine |
+| Specialiste indisponible | `nodes/specialiste_indisponible.py` | Message chaleureux, `sources: []` |
+| Synthese | `nodes/redacteur.py` | Reponse citoyenne (max 3 sources API) |
+| Verificateur | `nodes/verificateur.py` | Controle, boucle max 2 essais |
+| Garde-fou | `nodes/garde_fou.py` | Disclaimer si reponse sourcee |
+| Repli | `nodes/repli.py` | Echec sans sources |
+
+`POST /api/chat` : salutations via `chat_intent.py` ; juridique via graphe si `AGENT_GRAPH_ENABLED=true`.
+
+Reponse API etendue : `mode` (`legal`, `clarification`, `fallback`, `small_talk`) et `trace` (logs serveur).
 
 ```text
-MVP (implémenté)
+Graphe (AGENT_GRAPH_ENABLED=true)
 
-  question --> embed --> pgvector --> prompt + Mistral --> answer + sources
+  question --> Analyste --> Routeur --> Chercheurs --> Redacteur --> Verificateur
+                |                                              | retry (x2 max)
+                v                                              v
+            Clarify                                         Repli / Garde-fou
 ```
 
 ## Architecture cible (backend)

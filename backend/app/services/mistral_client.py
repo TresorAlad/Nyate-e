@@ -11,16 +11,27 @@ class MistralCloudClient:
         return bool(self.settings.mistral_api_key.strip())
 
     def chat(self, system: str, user: str) -> str:
+        return self.complete(
+            [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ]
+        )
+
+    def complete(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int | None = None,
+    ) -> str:
         if not self.is_configured():
             raise ValueError("Clé API Mistral non configurée.")
 
         payload = {
             "model": self.settings.mistral_api_model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": 0.2,
+            "messages": messages,
+            "temperature": 0.35,
+            "max_tokens": max_tokens or self.settings.chat_max_tokens,
         }
         headers = {
             "Authorization": f"Bearer {self.settings.mistral_api_key}",

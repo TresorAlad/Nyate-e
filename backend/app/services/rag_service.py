@@ -7,13 +7,32 @@ from app.config import Settings
 from app.services.mistral_client import MistralCloudClient
 from app.services.ollama_client import OllamaClient
 from app.services.ollama_queue import OllamaRequestQueue
+from app.services.rodium_client import RodiumClient
+from app.services.chat_intent import is_greeting_only, needs_legal_rag
+from app.services.citizen_responses import (
+    GREETING_ANSWER,
+    NO_OFFICIAL_SOURCE_ANSWER,
+    OUT_OF_SCOPE_ANSWER,
+)
+from app.services.chat_intent import is_non_legal_off_topic
+from app.services.response_limits import clamp_citizen_answer
+from app.agents.document_catalog import invalidate_document_catalog_cache
+from app.agents.source_format import infer_article_label
+from app.services.ingest_metadata import infer_domain_for_document
 from app.services.text_chunker import chunk_text
 
-SYSTEM_PROMPT = """Tu es Nyatefe, assistant juridique pour le droit togolais.
-Tu réponds uniquement à partir des extraits de sources fournis.
-Si une information manque, dis-le clairement.
-Cite les références (titre, type, source) quand c'est possible.
-Rappelle que tu orientes et ne remplaces pas un avocat ou un juriste."""
+MAX_HISTORY_MESSAGES = 8
+
+SMALL_TALK_SYSTEM_PROMPT = """Tu es Nyatefe, assistant juridique togolais uniquement.
+Reponse courte (2 phrases max), chaleureuse, vouvoiement.
+Invite a poser une question de droit togolais. Aucune loi citee. Pas de code informatique."""
+
+SYSTEM_PROMPT = """Tu es Nyatefe, assistant juridique pour le droit togolais uniquement.
+Reponse courte (max 120 mots) a partir des extraits fournis.
+Ne cite que des references presentes dans les extraits. N'invente rien.
+Interdit: programmation, code source, JSON, listes longues, sujets hors droit.
+Si les extraits ne suffisent pas: 1 ou 2 phrases et invite a reformuler.
+Markdown leger ok (gras pour un article). Pas de code."""
 
 
 class RagService:
@@ -22,18 +41,90 @@ class RagService:
         settings: Settings,
         ollama: OllamaClient,
         mistral: MistralCloudClient,
+        rodium: RodiumClient,
         ollama_queue: OllamaRequestQueue,
     ) -> None:
         self.settings = settings
         self.ollama = ollama
         self.mistral = mistral
+        self.rodium = rodium
         self.ollama_queue = ollama_queue
 
     def embed_query(self, query: str) -> list[float]:
         return self.ollama_queue.run(lambda: self.ollama.embed(query))
 
     def search_similar(
-        self, conn: Connection[Any], query_embedding: list[float], top_k: int | None = None
+        self,
+        conn: Connection[Any],
+        query_embedding: list[float],
+        top_k: int | None = None,
+        domaine: str | None = None,
+        *,
+        allow_global_fallback: bool = True,
+    ) -> tuple[list[dict[str, Any]], bool]:
+        limit = top_k or self.settings.rag_top_k
+        vector_literal = _to_pgvector(query_embedding)
+        base_select = """
+            SELECT
+                c.id AS chunk_id,
+                c.content,
+                c.chunk_index,
+                c.metadata,
+                d.id AS document_id,
+                d.title,
+                d.doc_type,
+                d.source_ref,
+                d.version_date,
+                1 - (c.embedding <=> %s::vector) AS similarity
+            FROM legal_chunks c
+            JOIN legal_documents d ON d.id = c.document_id
+            WHERE c.embedding IS NOT NULL
+        """
+        order_limit = """
+            ORDER BY c.embedding <=> %s::vector
+            LIMIT %s
+        """
+
+        rows: list[Any] = []
+        used_fallback = False
+        if domaine:
+            sql = (
+                base_select
+                + """
+            AND c.metadata->>'domaine' = %s
+            """
+                + order_limit
+            )
+            rows = conn.execute(
+                sql,
+                (vector_literal, domaine, vector_literal, limit),
+            ).fetchall()
+
+        if not rows and domaine and allow_global_fallback:
+            used_fallback = True
+            sql = base_select + order_limit
+            rows = conn.execute(
+                sql, (vector_literal, vector_literal, limit)
+            ).fetchall()
+        elif not rows and not domaine:
+            sql = base_select + order_limit
+            rows = conn.execute(
+                sql, (vector_literal, vector_literal, limit)
+            ).fetchall()
+
+        filtered = [
+            row
+            for row in rows
+            if float(row["similarity"]) >= self.settings.rag_min_similarity
+        ]
+        return filtered, used_fallback
+
+    def search_similar_for_document(
+        self,
+        conn: Connection[Any],
+        query_embedding: list[float],
+        document_id: str,
+        top_k: int | None = None,
     ) -> list[dict[str, Any]]:
         limit = top_k or self.settings.rag_top_k
         vector_literal = _to_pgvector(query_embedding)
@@ -52,16 +143,37 @@ class RagService:
             FROM legal_chunks c
             JOIN legal_documents d ON d.id = c.document_id
             WHERE c.embedding IS NOT NULL
+              AND d.id = %s::uuid
             ORDER BY c.embedding <=> %s::vector
             LIMIT %s
         """
-        rows = conn.execute(sql, (vector_literal, vector_literal, limit)).fetchall()
-        filtered = [
+        rows = conn.execute(
+            sql,
+            (vector_literal, document_id, vector_literal, limit),
+        ).fetchall()
+        return [
             row
             for row in rows
             if float(row["similarity"]) >= self.settings.rag_min_similarity
         ]
-        return filtered
+
+    def search_document_candidates(
+        self,
+        conn: Connection[Any],
+        query_embedding: list[float],
+        *,
+        scan_top_k: int | None = None,
+        max_documents: int | None = None,
+    ) -> list[dict[str, Any]]:
+        scan = scan_top_k or self.settings.agent_document_scan_top_k
+        cap = max_documents or self.settings.agent_parallel_domains
+        rows, _fallback = self.search_similar(
+            conn,
+            query_embedding,
+            top_k=scan,
+            domaine=None,
+        )
+        return aggregate_document_candidates(rows, max_documents=cap)
 
     def ingest_document(
         self,
@@ -71,10 +183,20 @@ class RagService:
         doc_type: str | None,
         source_ref: str | None,
         version_date: str | None,
+        *,
+        domaine: str | None = None,
+        version_tag: str | None = None,
     ) -> dict[str, Any]:
         return self.ollama_queue.run(
             lambda: self._ingest_document(
-                conn, title, body, doc_type, source_ref, version_date
+                conn,
+                title,
+                body,
+                doc_type,
+                source_ref,
+                version_date,
+                domaine=domaine,
+                version_tag=version_tag,
             )
         )
 
@@ -86,6 +208,9 @@ class RagService:
         doc_type: str | None,
         source_ref: str | None,
         version_date: str | None,
+        *,
+        domaine: str | None = None,
+        version_tag: str | None = None,
     ) -> dict[str, Any]:
         doc_row = conn.execute(
             """
@@ -97,12 +222,21 @@ class RagService:
         ).fetchone()
 
         document_id = doc_row["id"]
+        resolved_domaine = domaine or infer_domain_for_document(title, doc_type)
         chunks = chunk_text(
             body, self.settings.chunk_size, self.settings.chunk_overlap
         )
         inserted = 0
         for index, chunk in enumerate(chunks):
             embedding = self.ollama.embed(chunk)
+            chunk_meta: dict[str, Any] = {
+                "char_count": len(chunk),
+                "document_title": title,
+            }
+            if resolved_domaine:
+                chunk_meta["domaine"] = resolved_domaine
+            if version_tag:
+                chunk_meta["version_tag"] = version_tag
             conn.execute(
                 """
                 INSERT INTO legal_chunks (document_id, chunk_index, content, embedding, metadata)
@@ -113,55 +247,111 @@ class RagService:
                     index,
                     chunk,
                     _to_pgvector(embedding),
-                    Jsonb({"char_count": len(chunk)}),
+                    Jsonb(chunk_meta),
                 ),
             )
             inserted += 1
 
         conn.commit()
+        invalidate_document_catalog_cache()
         return {
             "document": doc_row,
             "chunks_inserted": inserted,
         }
 
-    def answer_question(
-        self, conn: Connection[Any], question: str, top_k: int | None = None
+    def answer_small_talk(
+        self,
+        question: str,
+        history: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
-        return self.ollama_queue.run(
-            lambda: self._answer_question(conn, question, top_k=top_k)
-        )
+        if is_greeting_only(question):
+            return {
+                "answer": GREETING_ANSWER,
+                "provider": self.settings.chat_provider,
+                "sources": [],
+                "mode": "small_talk",
+            }
 
-    def _answer_question(
-        self, conn: Connection[Any], question: str, top_k: int | None = None
-    ) -> dict[str, Any]:
-        query_embedding = self.ollama.embed(question)
-        sources = self.search_similar(conn, query_embedding, top_k=top_k)
+        if is_non_legal_off_topic(question):
+            return {
+                "answer": OUT_OF_SCOPE_ANSWER,
+                "provider": self.settings.chat_provider,
+                "sources": [],
+                "mode": "clarification",
+            }
 
-        context_block = _format_sources(sources)
-        user_prompt = f"""Question:
+        sanitized_history = _sanitize_history(history or [])
+        user_prompt = f"""Message de l'utilisateur:
 {question}
 
-Extraits de sources:
+Consignes:
+- Accueil ou réponse sociale uniquement.
+- Propose ensuite d'aider sur une question de droit togolais."""
+
+        messages: list[dict[str, str]] = [
+            {"role": "system", "content": SMALL_TALK_SYSTEM_PROMPT},
+            *sanitized_history,
+            {"role": "user", "content": user_prompt},
+        ]
+        provider, answer = self._generate_answer_messages(messages)
+        return {
+            "answer": clamp_citizen_answer(
+                answer, max_chars=self.settings.chat_max_answer_chars
+            ),
+            "provider": provider,
+            "sources": [],
+            "mode": "small_talk",
+        }
+
+    def answer_question(
+        self,
+        conn: Connection[Any],
+        question: str,
+        top_k: int | None = None,
+        history: list[dict[str, str]] | None = None,
+    ) -> dict[str, Any]:
+        sanitized_history = _sanitize_history(history or [])
+
+        if not needs_legal_rag(question, sanitized_history):
+            return self.answer_small_talk(question, sanitized_history)
+
+        search_query = _compose_search_query(question, sanitized_history)
+        query_embedding = self.ollama_queue.run(
+            lambda: self.ollama.embed(search_query)
+        )
+        sources, _fallback = self.search_similar(conn, query_embedding, top_k=top_k)
+
+        if not sources:
+            return {
+                "answer": NO_OFFICIAL_SOURCE_ANSWER,
+                "provider": self.settings.chat_provider,
+                "sources": [],
+                "mode": "no_source",
+            }
+
+        context_block = _format_sources(sources)
+        user_prompt = f"""Extraits de sources (question actuelle):
 {context_block}
 
-Consignes:
-- Réponds en français clair et accessible.
-- Base-toi uniquement sur les extraits.
-- Termine par une phrase de prudence juridique."""
+Question actuelle:
+{question}
 
-        provider = "ollama"
-        try:
-            answer = self.ollama.chat(SYSTEM_PROMPT, user_prompt)
-        except Exception as ollama_error:
-            if not (
-                self.settings.mistral_fallback_enabled and self.mistral.is_configured()
-            ):
-                raise ollama_error
-            answer = self.mistral.chat(SYSTEM_PROMPT, user_prompt)
-            provider = "mistral_api"
+Consignes:
+- Réponds en français clair et accessible, en tenant compte du dialogue précédent si la question est une relance.
+- Base-toi uniquement sur les extraits ci-dessus pour les faits juridiques.
+- Respecte le format Markdown décrit dans le message système."""
+
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            *sanitized_history,
+            {"role": "user", "content": user_prompt},
+        ]
+        provider, answer = self._generate_answer_messages(messages)
 
         return {
-            "answer": answer,
+            "answer": clamp_citizen_answer(
+                answer, max_chars=self.settings.chat_max_answer_chars
+            ),
             "provider": provider,
             "sources": [
                 {
@@ -174,12 +364,69 @@ Consignes:
                     if row["version_date"]
                     else None,
                     "chunk_index": row["chunk_index"],
-                    "similarity": float(row["similarity"]),
-                    "excerpt": row["content"][:400],
+                    "article": infer_article_label(row["content"]),
+                    "content": row["content"],
+                    "excerpt": row["content"],
                 }
                 for row in sources
             ],
         }
+
+    def _generate_answer_messages(
+        self, messages: list[dict[str, str]]
+    ) -> tuple[str, str]:
+        provider = self.settings.chat_provider
+
+        max_tokens = self.settings.chat_max_tokens
+        if provider == "rodium" and self.rodium.is_configured():
+            return "rodium", self.rodium.complete(messages, max_tokens=max_tokens)
+
+        if provider == "rodium" and not self.rodium.is_configured():
+            provider = "ollama"
+
+        if provider == "mistral" and self.mistral.is_configured():
+            return "mistral_api", self.mistral.complete(
+                messages, max_tokens=max_tokens
+            )
+
+        try:
+            answer = self.ollama_queue.run(
+                lambda: self.ollama.complete(messages, max_tokens=max_tokens)
+            )
+            return "ollama", answer
+        except Exception as ollama_error:
+            if self.rodium.is_configured():
+                return "rodium", self.rodium.complete(
+                    messages, max_tokens=max_tokens
+                )
+            if self.settings.mistral_fallback_enabled and self.mistral.is_configured():
+                return "mistral_api", self.mistral.complete(
+                    messages, max_tokens=max_tokens
+                )
+            raise ollama_error
+
+
+def _sanitize_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
+    cleaned: list[dict[str, str]] = []
+    for item in history:
+        role = (item.get("role") or "").strip()
+        content = (item.get("content") or "").strip()
+        if role not in ("user", "assistant") or not content:
+            continue
+        cleaned.append({"role": role, "content": content[:4000]})
+    return cleaned[-MAX_HISTORY_MESSAGES:]
+
+
+def _compose_search_query(question: str, history: list[dict[str, str]]) -> str:
+    if not history:
+        return question
+    recent: list[str] = []
+    for item in history[-4:]:
+        label = "Utilisateur" if item["role"] == "user" else "Assistant"
+        snippet = item["content"][:300].replace("\n", " ")
+        recent.append(f"{label}: {snippet}")
+    recent.append(f"Utilisateur: {question}")
+    return "\n".join(recent)
 
 
 def _format_sources(sources: list[dict[str, Any]]) -> str:
@@ -199,3 +446,28 @@ def _format_sources(sources: list[dict[str, Any]]) -> str:
 
 def _to_pgvector(values: list[float]) -> str:
     return json.dumps(values)
+
+
+def aggregate_document_candidates(
+    rows: list[dict[str, Any]],
+    *,
+    max_documents: int,
+) -> list[dict[str, Any]]:
+    by_document: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        document_id = str(row["document_id"])
+        similarity = float(row["similarity"])
+        current = by_document.get(document_id)
+        if current is None or similarity > float(current["similarity"]):
+            by_document[document_id] = {
+                "document_id": document_id,
+                "title": row.get("title"),
+                "doc_type": row.get("doc_type"),
+                "similarity": similarity,
+            }
+    ranked = sorted(
+        by_document.values(),
+        key=lambda item: float(item["similarity"]),
+        reverse=True,
+    )
+    return ranked[:max_documents]

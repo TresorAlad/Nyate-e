@@ -1,12 +1,12 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { AuthModal } from './components/auth/AuthModal'
 import { ChatPanel } from './components/ChatPanel'
 import { IngestPanel } from './components/IngestPanel'
 import { AppShell } from './components/shell/AppShell'
+import { CitizenShell } from './components/shell/CitizenShell'
 import type { AppRoute } from './components/shell/SidebarNav'
 import { useAuth } from './context/AuthContext'
-import type { PublicProfile } from './lib/auth-types'
 import {
   canAccessRoute,
   defaultRouteForRole,
@@ -18,30 +18,38 @@ import { ConfidentialiteView } from './views/ConfidentialiteView'
 import { DashboardView } from './views/DashboardView'
 import { LandingView } from './views/LandingView'
 import { MentionsLegalesView } from './views/MentionsLegalesView'
+import { ParametresView } from './views/ParametresView'
+import { ProfilView } from './views/ProfilView'
 import { RedactionView } from './views/RedactionView'
 
 type AuthModalState = {
   isOpen: boolean
   mode: 'login' | 'signup'
   redirectRoute?: AppRoute
-  initialPublicProfile?: PublicProfile
 }
 
 function App() {
   const { user, logout } = useAuth()
-  const [route, setRoute] = useState<AppRoute>('accueil')
+  const [route, setRoute] = useState<AppRoute>(() => {
+    const session = getSessionUser()
+    return session ? defaultRouteForRole(session.role) : 'accueil'
+  })
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [conversationsTick, setConversationsTick] = useState(0)
+
+  useEffect(() => {
+    if (user && route === 'accueil') {
+      setRoute(defaultRouteForRole(user.role))
+    }
+  }, [user, route])
   const [authModal, setAuthModal] = useState<AuthModalState>({
     isOpen: false,
     mode: 'login',
   })
 
   const openAuth = useCallback(
-    (
-      mode: 'login' | 'signup',
-      redirectRoute?: AppRoute,
-      initialPublicProfile?: PublicProfile,
-    ) => {
-      setAuthModal({ isOpen: true, mode, redirectRoute, initialPublicProfile })
+    (mode: 'login' | 'signup', redirectRoute?: AppRoute) => {
+      setAuthModal({ isOpen: true, mode, redirectRoute })
     },
     [],
   )
@@ -49,6 +57,10 @@ function App() {
   const navigate = useCallback(
     (next: AppRoute) => {
       if (isPublicSiteRoute(next)) {
+        if (user && next === 'accueil') {
+          setRoute(defaultRouteForRole(user.role))
+          return
+        }
         setRoute(next)
         return
       }
@@ -79,7 +91,28 @@ function App() {
 
   function handleLogout() {
     logout()
+    setConversationId(null)
     setRoute('accueil')
+  }
+
+  function bumpConversations() {
+    setConversationsTick((tick) => tick + 1)
+  }
+
+  function handleNewChat() {
+    setConversationId(null)
+    setRoute('assistant')
+  }
+
+  function handleSelectConversation(id: string) {
+    setConversationId(id)
+    setRoute('assistant')
+  }
+
+  function handleHistoryCleared() {
+    setConversationId(null)
+    bumpConversations()
+    setRoute('assistant')
   }
 
   const authModalElement = (
@@ -87,7 +120,6 @@ function App() {
       isOpen={authModal.isOpen}
       mode={authModal.mode}
       redirectRoute={authModal.redirectRoute}
-      initialPublicProfile={authModal.initialPublicProfile}
       onClose={() => setAuthModal((prev) => ({ ...prev, isOpen: false }))}
       onSuccess={(target) => {
         setAuthModal((prev) => ({ ...prev, isOpen: false }))
@@ -100,8 +132,8 @@ function App() {
   if (isPublicSiteRoute(route)) {
     return (
       <>
-        {route === 'accueil' ? (
-          <LandingView user={user} onNavigate={navigate} onOpenAuth={openAuth} />
+        {route === 'accueil' && !user ? (
+          <LandingView user={null} onNavigate={navigate} onOpenAuth={openAuth} />
         ) : null}
         {route === 'mentions-legales' ? (
           <MentionsLegalesView
@@ -135,6 +167,43 @@ function App() {
     ? route
     : defaultRouteForRole(user.role)
 
+  if (user.role === 'citizen') {
+    return (
+      <>
+        <CitizenShell
+          route={safeRoute}
+          user={user}
+          conversationId={conversationId}
+          conversationsTick={conversationsTick}
+          onNavigate={navigate}
+          onLogout={handleLogout}
+          onNewChat={handleNewChat}
+          onSelectConversation={handleSelectConversation}
+          onConversationsChange={bumpConversations}
+        >
+          {safeRoute === 'assistant' ? (
+            <ChatPanel
+              key="citizen-assistant"
+              variant="gpt"
+              conversationId={conversationId}
+              onConversationIdChange={setConversationId}
+              onConversationsChange={bumpConversations}
+            />
+          ) : null}
+          {safeRoute === 'profil' ? <ProfilView /> : null}
+          {safeRoute === 'parametres' ? (
+            <ParametresView
+              onNavigate={navigate}
+              onLogout={handleLogout}
+              onHistoryCleared={handleHistoryCleared}
+            />
+          ) : null}
+        </CitizenShell>
+        {authModalElement}
+      </>
+    )
+  }
+
   const headerBadge =
     safeRoute === 'assistant'
       ? 'Assistant juridique · Togo'
@@ -144,7 +213,11 @@ function App() {
           ? 'Rédaction assistée'
           : safeRoute === 'ingest'
             ? 'Textes officiels · Togo'
-            : 'Tableau de bord · Nyateƒe'
+            : safeRoute === 'profil'
+              ? 'Profil'
+              : safeRoute === 'parametres'
+                ? 'Paramètres'
+                : 'Tableau de bord · Nyateƒe'
 
   return (
     <>
@@ -156,10 +229,30 @@ function App() {
         headerBadge={headerBadge}
       >
         <div key={safeRoute} className="route-enter">
-          {safeRoute === 'dashboard' ? <DashboardView user={user} /> : null}
-          {safeRoute === 'assistant' ? <ChatPanel /> : null}
-          {safeRoute === 'bibliotheque' ? <BibliothequeView /> : null}
+          {safeRoute === 'dashboard' ? (
+            <DashboardView user={user} onNavigate={navigate} />
+          ) : null}
+          {safeRoute === 'assistant' ? (
+            <ChatPanel
+              key="workspace-assistant"
+              variant="workspace"
+              conversationId={conversationId}
+              onConversationIdChange={setConversationId}
+              onConversationsChange={bumpConversations}
+            />
+          ) : null}
+          {safeRoute === 'bibliotheque' ? (
+            <BibliothequeView onNavigate={navigate} />
+          ) : null}
           {safeRoute === 'redaction' ? <RedactionView /> : null}
+          {safeRoute === 'profil' ? <ProfilView /> : null}
+          {safeRoute === 'parametres' ? (
+            <ParametresView
+              onNavigate={navigate}
+              onLogout={handleLogout}
+              onHistoryCleared={handleHistoryCleared}
+            />
+          ) : null}
           {safeRoute === 'ingest' ? (
             <div className="px-margin py-space-lg">
               <IngestPanel />

@@ -1,3 +1,6 @@
+import json
+from collections.abc import Iterator
+
 import httpx
 
 from app.config import Settings
@@ -20,14 +23,25 @@ class OllamaClient:
         return embedding
 
     def chat(self, system: str, user: str) -> str:
-        payload = {
-            "model": self.settings.ollama_chat_model,
-            "messages": [
+        return self.complete(
+            [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
-            ],
+            ]
+        )
+
+    def complete(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int | None = None,
+    ) -> str:
+        limit = max_tokens or self.settings.chat_max_tokens
+        payload = {
+            "model": self.settings.ollama_chat_model,
+            "messages": messages,
             "stream": False,
-            "options": {"temperature": 0.2},
+            "options": {"temperature": 0.35, "num_predict": limit},
         }
         with httpx.Client(timeout=self.settings.mistral_fallback_timeout_seconds) as client:
             response = client.post(f"{self.base_url}/api/chat", json=payload)
@@ -38,3 +52,36 @@ class OllamaClient:
         if not content:
             raise ValueError("Réponse Ollama vide.")
         return content
+
+    def complete_stream(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int | None = None,
+    ) -> Iterator[str]:
+        limit = max_tokens or self.settings.chat_max_tokens
+        payload = {
+            "model": self.settings.ollama_chat_model,
+            "messages": messages,
+            "stream": True,
+            "options": {"temperature": 0.35, "num_predict": limit},
+        }
+        with httpx.Client(
+            timeout=self.settings.mistral_fallback_timeout_seconds
+        ) as client:
+            with client.stream(
+                "POST",
+                f"{self.base_url}/api/chat",
+                json=payload,
+            ) as response:
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    data = json.loads(line)
+                    message = data.get("message") or {}
+                    chunk = message.get("content") or ""
+                    if chunk:
+                        yield chunk
+                    if data.get("done"):
+                        break

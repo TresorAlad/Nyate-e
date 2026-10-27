@@ -1,0 +1,47 @@
+# Domaines juridiques v1 - un agent specialise par id (corpus indexe)
+domains:
+  - id: penal
+    label: Code penal
+    active: true
+    description_courte: Questions sur le code penal togolais (infractions, peines).
+    doc_types: [code, loi]
+  - id: famille
+    label: Code des personnes et des familles
+    active: true
+    description_courte: Mariage, divorce, filiation, succession, regime des personnes.
+    doc_types: [code, loi]
+  - id: travail
+    label: Code du travail
+    active: true
+    description_courte: Contrat de travail, licenciement, conditions de travail.
+    doc_types: [code, loi, decret]
+  - id: affaires
+    label: Droit des affaires et fiscalite (CGI / OTR)
+    active: true
+    description_courte: Impots, import-export, procedures fiscales OTR.
+    doc_types: [code, loi, decret]
+  - id: constitution
+    label: Constitution du Togo
+    active: true
+    description_courte: Institutions, droits fondamentaux, cadre constitutionnel.
+    doc_types: [constitution, loi]
+  - id: donnees_personnelles
+    label: Protection des donnees personnelles
+    active: true
+    description_courte: Loi sur les donnees personnelles, vie privee, traitements.
+    doc_types: [loi, decret]
+  - id: foncier
+    label: Foncier et domanial
+    active: false
+    description_courte: Terrains, baux, propriete fonciere (textes non indexes).
+    doc_types: [code, loi, decret]
+  - id: commercial
+    label: Droit commercial et OHADA
+    active: false
+    description_courte: Societes, OHADA (textes non indexes).
+    doc_types: [code, loi, acte_uniforme]
+  - id: public
+    label: Droit public general
+    active: false
+    description_courte: Droit administratif general (hors constitution indexee).
+    doc_types: [code, loi, decret]

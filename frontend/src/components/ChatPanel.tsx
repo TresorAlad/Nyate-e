@@ -1,63 +1,324 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from 'react'
 
-import { fetchQueueStatus, sendChat, type ChatResponse } from '../lib/api'
+import {
+  fetchQueueStatus,
+  isChatStreamEnabled,
+  sendChat,
+  sendChatStream,
+  type ChatHistoryMessage,
+  type ChatResponse,
+  type SourceItem,
+} from '../lib/api'
+import { shortcutsForProfile } from '../lib/citizen-shortcuts'
+import {
+  getConversation,
+  titleFromQuestion,
+  upsertConversation,
+  type StoredTurn,
+} from '../lib/conversations'
 import { consumePendingQuestion } from '../lib/pending-question'
+import { useAuth } from '../context/AuthContext'
+import { useHideChatSources } from '../context/ChatExperienceContext'
 import { MaterialIcon } from './shell/MaterialIcon'
+import { ChatAnswerMarkdown } from './ChatAnswerMarkdown'
 import { SourceList } from './SourceList'
 
-const SUGGESTED_QUERIES = [
-  {
-    icon: 'home_work',
-    title: 'Hausse de loyer sans préavis',
-    hint: 'Baux d\'habitation au Togo',
-  },
-  {
-    icon: 'corporate_fare',
-    title: 'Créer une SARL à Lomé',
-    hint: 'Formalités et OHADA',
-  },
-  {
-    icon: 'badge',
-    title: 'Période d\'essai Code du travail',
-    hint: 'Licenciement et préavis',
-  },
-]
+type ChatTurn = {
+  id: string
+  question: string
+  status: 'loading' | 'streaming' | 'ok' | 'error'
+  answer?: ChatResponse
+  streamingText?: string
+  error?: string
+}
 
-export function ChatPanel() {
-  const [question, setQuestion] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<ChatResponse | null>(null)
+type ChatPanelProps = {
+  variant?: 'gpt' | 'workspace'
+  conversationId?: string | null
+  onConversationIdChange?: (id: string | null) => void
+  onConversationsChange?: () => void
+}
+
+function historyFromTurns(turns: ChatTurn[]): ChatHistoryMessage[] {
+  const messages: ChatHistoryMessage[] = []
+  for (const turn of turns) {
+    if (turn.status !== 'ok' || !turn.answer?.answer) continue
+    messages.push({ role: 'user', content: turn.question })
+    messages.push({ role: 'assistant', content: turn.answer.answer })
+  }
+  return messages.slice(-8)
+}
+
+function toStoredTurns(turns: ChatTurn[]): StoredTurn[] {
+  return turns
+    .filter((turn) => turn.status !== 'loading')
+    .map((turn) => ({
+      id: turn.id,
+      question: turn.question,
+      status: turn.status === 'error' ? 'error' : 'ok',
+      answer: turn.answer,
+      error: turn.error,
+    }))
+}
+
+function greetingWord(): string {
+  return new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir'
+}
+
+function firstName(displayName: string): string {
+  return displayName.trim().split(/\s+/)[0] || 'vous'
+}
+
+function persistTurns(
+  userId: string,
+  conversationId: string,
+  turns: ChatTurn[],
+  titleSeed: string,
+) {
+  upsertConversation(userId, {
+    id: conversationId,
+    title: titleFromQuestion(titleSeed),
+    updatedAt: Date.now(),
+    turns: toStoredTurns(turns),
+  })
+}
+
+export function ChatPanel({
+  variant = 'workspace',
+  conversationId = null,
+  onConversationIdChange,
+  onConversationsChange,
+}: ChatPanelProps) {
+  const { user } = useAuth()
+  const isControlled = Boolean(onConversationIdChange)
+  const [localConversationId, setLocalConversationId] = useState<string | null>(
+    null,
+  )
+  const activeConversationId = isControlled ? conversationId : localConversationId
+  const setActiveConversationId = onConversationIdChange ?? setLocalConversationId
+  const [draft, setDraft] = useState('')
+  const [turns, setTurns] = useState<ChatTurn[]>([])
   const [queueWaiting, setQueueWaiting] = useState(0)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const threadRef = useRef<HTMLDivElement>(null)
+  const conversationIdRef = useRef(activeConversationId)
+  const turnsRef = useRef<ChatTurn[]>([])
+  const skipLoadRef = useRef(false)
+  const isLoading = turns.some(
+    (turn) => turn.status === 'loading' || turn.status === 'streaming',
+  )
+  const shortcuts = shortcutsForProfile(user?.publicProfile ?? 'citizen')
+  const hideChatSources = useHideChatSources()
+  const isGpt = hideChatSources || variant === 'gpt' || user?.role === 'citizen'
+  const showSources =
+    !hideChatSources && variant === 'workspace' && user?.role !== 'citizen'
+
+  function sanitizeChatResponse(response: ChatResponse): ChatResponse {
+    if (showSources) return response
+    return { ...response, sources: [] }
+  }
+
+  conversationIdRef.current = activeConversationId
+  turnsRef.current = turns
+
+  useEffect(() => {
+    if (skipLoadRef.current) {
+      skipLoadRef.current = false
+      if (turnsRef.current.length === 0 && user && activeConversationId) {
+        const stored = getConversation(user.id, activeConversationId)
+        if (stored?.turns.length) {
+          setTurns(
+            stored.turns.map((turn) => ({
+              ...turn,
+              status: turn.status,
+              answer: turn.answer
+                ? sanitizeChatResponse(turn.answer)
+                : turn.answer,
+            })),
+          )
+        }
+      }
+      return
+    }
+    if (!user || !activeConversationId) {
+      setTurns([])
+      return
+    }
+    const stored = getConversation(user.id, activeConversationId)
+    setTurns(
+      stored
+        ? stored.turns.map((turn) => ({
+            ...turn,
+            status: turn.status,
+            answer: turn.answer
+              ? sanitizeChatResponse(turn.answer)
+              : turn.answer,
+          }))
+        : [],
+    )
+  }, [activeConversationId, hideChatSources, user?.id, user?.role, variant])
+
+  function commitTurns(boundId: string, next: ChatTurn[]) {
+    if (!user) return
+    persistTurns(user.id, boundId, next, next[0]?.question ?? '')
+    onConversationsChange?.()
+    if (conversationIdRef.current === boundId) {
+      turnsRef.current = next
+      setTurns(next)
+    }
+  }
+
+  function turnsForBoundId(boundId: string, fallback: ChatTurn[]): ChatTurn[] {
+    const live =
+      conversationIdRef.current === boundId ? turnsRef.current : []
+    return live.some((turn) => fallback.some((item) => item.id === turn.id))
+      ? live
+      : fallback
+  }
 
   async function submitQuestion(text: string) {
     const trimmed = text.trim()
-    if (!trimmed || isLoading) return
+    if (!trimmed || isLoading || !user) return
 
-    setQuestion(trimmed)
-    setIsLoading(true)
-    setError(null)
-    setResult(null)
+    const turnId = crypto.randomUUID()
+    const boundId = conversationIdRef.current ?? crypto.randomUUID()
+    if (conversationIdRef.current !== boundId) {
+      skipLoadRef.current = true
+      conversationIdRef.current = boundId
+      setActiveConversationId(boundId)
+    }
+
+    const loadingTurn: ChatTurn = {
+      id: turnId,
+      question: trimmed,
+      status: 'loading',
+    }
+    const storedTurns =
+      conversationIdRef.current === boundId && turnsRef.current.length > 0
+        ? turnsRef.current
+        : (getConversation(user.id, boundId)?.turns.map((turn) => ({
+            ...turn,
+            status: turn.status,
+          })) ?? [])
+    const snapshot = [...storedTurns, loadingTurn]
+    setDraft('')
+    commitTurns(boundId, snapshot)
+
+    const applyTurnUpdate = (nextTurn: ChatTurn) => {
+      const base = turnsForBoundId(boundId, snapshot).map((turn) =>
+        turn.id === turnId ? nextTurn : turn,
+      )
+      turnsRef.current = base
+      setTurns(base)
+    }
+
+    async function runClassicChat() {
+      const response = await sendChat(trimmed, historyFromTurns(storedTurns))
+      commitTurns(
+        boundId,
+        turnsForBoundId(boundId, snapshot).map((turn) =>
+          turn.id === turnId
+            ? { ...turn, status: 'ok', answer: sanitizeChatResponse(response) }
+            : turn,
+        ),
+      )
+    }
 
     try {
-      const response = await sendChat(trimmed)
-      setResult(response)
+      if (isChatStreamEnabled()) {
+        let streamText = ''
+        let streamSources: SourceItem[] = []
+        let streamProvider: ChatResponse['provider'] = 'ollama'
+
+        const streamingTurn = (): ChatTurn => ({
+          ...loadingTurn,
+          status: 'streaming',
+          streamingText: streamText,
+          answer: sanitizeChatResponse({
+            answer: streamText,
+            provider: streamProvider,
+            sources: streamSources,
+          }),
+        })
+
+        try {
+          await sendChatStream(trimmed, historyFromTurns(storedTurns), {
+            onToken: (token) => {
+              streamText += token
+              applyTurnUpdate(streamingTurn())
+            },
+            onSources: (sources) => {
+              if (!showSources) return
+              streamSources = sources
+              applyTurnUpdate(streamingTurn())
+            },
+            onDone: (payload) => {
+              streamProvider = payload.provider
+              streamText = payload.answer || streamText
+              streamSources = payload.sources ?? streamSources
+            },
+            onError: (message) => {
+              throw new Error(message)
+            },
+          })
+
+          commitTurns(
+            boundId,
+            turnsForBoundId(boundId, snapshot).map((turn) =>
+              turn.id === turnId
+                ? {
+                    ...turn,
+                    status: 'ok',
+                    streamingText: undefined,
+                    answer: sanitizeChatResponse({
+                      answer: streamText,
+                      provider: streamProvider,
+                      sources: streamSources,
+                    }),
+                  }
+                : turn,
+            ),
+          )
+          return
+        } catch {
+          applyTurnUpdate({ ...loadingTurn, status: 'loading', streamingText: undefined })
+        }
+      }
+
+      await runClassicChat()
     } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : 'Impossible de générer une réponse.',
+      commitTurns(
+        boundId,
+        turnsForBoundId(boundId, snapshot).map((turn) =>
+          turn.id === turnId
+            ? {
+                ...turn,
+                status: 'error',
+                error:
+                  submitError instanceof Error
+                    ? submitError.message
+                    : 'Impossible de générer une réponse.',
+              }
+            : turn,
+        ),
       )
-    } finally {
-      setIsLoading(false)
     }
   }
 
   useEffect(() => {
     const pending = consumePendingQuestion()
     if (pending) {
-      setQuestion(pending)
+      setDraft(pending)
       void submitQuestion(pending)
+    } else {
+      inputRef.current?.focus()
     }
   }, [])
 
@@ -86,141 +347,257 @@ export function ChatPanel() {
     }
   }, [isLoading])
 
+  useEffect(() => {
+    threadRef.current?.scrollTo({
+      top: threadRef.current.scrollHeight,
+      behavior: 'smooth',
+    })
+  }, [turns])
+
+  function resizeComposer() {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    await submitQuestion(question)
+    await submitQuestion(draft)
+  }
+
+  function handleComposerKey(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      void submitQuestion(draft)
+    }
+  }
+
+  async function copyAnswer(turn: ChatTurn) {
+    if (!turn.answer?.answer) return
+    try {
+      await navigator.clipboard.writeText(turn.answer.answer)
+      setCopiedId(turn.id)
+      window.setTimeout(() => setCopiedId(null), 1800)
+    } catch {
+      setCopiedId(null)
+    }
+  }
+
+  const composer = (
+    <form onSubmit={handleSubmit} className="w-full">
+      <label className="sr-only" htmlFor="chat-question">
+        Votre question juridique
+      </label>
+      <div className="flex items-end gap-2 rounded-[1.6rem] bg-surface-container-lowest px-3 py-2 shadow-[0_8px_28px_rgba(86,22,24,0.08)] ring-1 ring-outline-variant/25">
+        <textarea
+          id="chat-question"
+          ref={inputRef}
+          rows={1}
+          value={draft}
+          onChange={(event) => {
+            setDraft(event.target.value)
+            resizeComposer()
+          }}
+          onKeyDown={handleComposerKey}
+          placeholder="Posez une question en droit togolais..."
+          className="max-h-40 min-h-11 w-full resize-none bg-transparent py-2.5 font-body text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={isLoading || !draft.trim()}
+          className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary transition-opacity hover:bg-primary-container disabled:opacity-35"
+          aria-label="Envoyer"
+        >
+          <MaterialIcon name="arrow_upward" className="text-[20px]" />
+        </button>
+      </div>
+      <p className="mt-2 text-center font-body text-body-sm text-on-surface-variant">
+        {isGpt
+          ? 'Nyateƒe peut se tromper. Consultez un professionnel du droit si besoin.'
+          : 'Nyateƒe peut se tromper. Vérifiez les sources officielles.'}
+        {isLoading && queueWaiting > 1 ? ' File d\'attente en cours.' : ''}
+      </p>
+    </form>
+  )
+
+  const thread = turns.map((turn) => (
+    <article key={turn.id} className="flex flex-col gap-4">
+      <div className="ml-8 self-end rounded-3xl rounded-tr-md bg-primary px-4 py-3 text-surface">
+        <p className="font-body text-body-sm leading-relaxed">{turn.question}</p>
+      </div>
+
+      {turn.status === 'loading' ? (
+        <div className="flex items-center gap-2 px-1">
+          <span className="typing-dot h-2 w-2 rounded-full bg-primary-container" />
+          <span
+            className="typing-dot h-2 w-2 rounded-full bg-primary-container"
+            style={{ animationDelay: '0.15s' }}
+          />
+          <span
+            className="typing-dot h-2 w-2 rounded-full bg-primary-container"
+            style={{ animationDelay: '0.3s' }}
+          />
+          <span className="font-label text-label-sm text-on-surface-variant">
+            {isGpt ? 'Préparation de la réponse...' : 'Recherche des sources officielles...'}
+          </span>
+        </div>
+      ) : null}
+
+      {turn.status === 'streaming' ? (
+        <div className="px-1">
+          <p className="whitespace-pre-wrap font-body text-body-md text-on-surface">
+            {turn.streamingText || ''}
+          </p>
+          {showSources && turn.answer && turn.answer.sources.length > 0 ? (
+            <div className="mt-4">
+              <SourceList sources={turn.answer.sources} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {turn.status === 'error' ? (
+        <div className="rounded-2xl border border-error/30 bg-error/10 p-4">
+          <p className="font-body text-body-sm text-error">{turn.error}</p>
+          <button
+            type="button"
+            onClick={() => void submitQuestion(turn.question)}
+            className="mt-3 inline-flex items-center gap-1 rounded-lg bg-surface px-3 py-2 font-label text-label-sm text-primary"
+          >
+            <MaterialIcon name="refresh" className="text-[16px]" />
+            Réessayer
+          </button>
+        </div>
+      ) : null}
+
+      {turn.status === 'ok' && turn.answer ? (
+        <div className="px-1">
+          <ChatAnswerMarkdown content={turn.answer.answer} />
+          {showSources && turn.answer.sources.length > 0 ? (
+            <div className="mt-4">
+              <SourceList sources={turn.answer.sources} />
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void copyAnswer(turn)}
+            className="mt-3 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 font-label text-label-sm text-on-surface-variant hover:bg-surface-container hover:text-primary"
+          >
+            <MaterialIcon name="content_copy" className="text-[16px]" />
+            {copiedId === turn.id ? 'Copié' : 'Copier'}
+          </button>
+        </div>
+      ) : null}
+    </article>
+  ))
+
+  const emptyState = (
+    <div className="flex flex-1 flex-col items-center justify-center px-4">
+      <h2 className="text-center font-headline text-headline-lg text-primary">
+        {greetingWord()}, {firstName(user?.displayName ?? '')}
+      </h2>
+      <p className="mt-2 max-w-md text-center font-body text-body-md text-on-surface-variant">
+        Posez votre question, puis enchaînez avec des relances dans le même fil.
+        Nyateƒe s&apos;appuie sur les textes officiels indexés pour vous orienter.
+      </p>
+      <div className="mt-8 w-full max-w-2xl">{composer}</div>
+      <div className="mt-5 flex max-w-2xl flex-wrap justify-center gap-2">
+        {shortcuts.slice(0, 3).map((item) => (
+          <button
+            key={item.title}
+            type="button"
+            disabled={isLoading}
+            onClick={() => void submitQuestion(item.title)}
+            className="rounded-full bg-surface-container-lowest px-3 py-1.5 font-label text-label-sm text-primary shadow-sm ring-1 ring-outline-variant/20 hover:bg-surface-container disabled:opacity-60"
+          >
+            {item.hint}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
+  if (isGpt) {
+    if (turns.length === 0) {
+      return <div className="flex h-full min-h-0 flex-col pb-6">{emptyState}</div>
+    }
+
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <div ref={threadRef} className="flex-1 overflow-y-auto">
+          <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-6">
+            {thread}
+          </div>
+        </div>
+        <div className="shrink-0 bg-background px-4 pb-4 pt-2">
+          <div className="mx-auto max-w-2xl">{composer}</div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] flex-col px-space-lg py-space-md">
-      <div className="mb-space-md flex flex-wrap items-center justify-between gap-space-sm border-none pb-space-sm">
-        <div className="flex items-center gap-space-sm">
-          <span className="font-headline text-headline-sm tracking-tight text-primary">
-            Consultation interactive
-          </span>
-          <span className="rounded-full bg-tertiary-fixed px-2.5 py-0.5 font-label text-label-sm font-semibold text-tertiary">
-            Assistant Nyateƒe
-          </span>
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col px-space-sm py-space-md sm:px-space-lg">
+      <div className="mb-space-md flex items-center justify-between gap-3">
+        <div>
+          <h1 className="font-headline text-headline-sm tracking-tight text-primary">
+            Assistant juridique
+          </h1>
+          <p className="font-body text-body-sm text-on-surface-variant">
+            Posez votre question. Les sources officielles s&apos;affichent avec la
+            réponse.
+          </p>
         </div>
-        {isLoading ? (
-          <div className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-on-surface">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-tertiary" />
-            <span className="font-label text-label-sm">
-              Analyse en cours
-              {queueWaiting > 1 ? ' · patientez un instant' : ''}
-            </span>
-          </div>
+        {turns.length ? (
+          <button
+            type="button"
+            onClick={() => {
+              setActiveConversationId(null)
+              setTurns([])
+              setDraft('')
+              inputRef.current?.focus()
+            }}
+            className="inline-flex items-center gap-1 rounded-lg bg-surface-container px-3 py-2 font-label text-label-sm text-primary hover:bg-surface-container-high"
+          >
+            <MaterialIcon name="add" className="text-[18px]" />
+            Nouvelle conversation
+          </button>
         ) : null}
       </div>
 
-      <div className="grid grid-cols-12 items-start gap-space-lg">
-        <aside className="col-span-12 flex flex-col gap-space-md xl:col-span-4">
-          <div className="flex flex-col gap-space-xs rounded-xl bg-surface-container-low p-space-md shadow-sm">
-            <div className="flex items-center gap-space-xs font-headline text-headline-sm text-primary">
-              <MaterialIcon name="verified" className="text-[24px]" />
-              <span>République togolaise</span>
-            </div>
-            <p className="font-body text-body-sm leading-relaxed text-on-surface-variant">
-              Réponses fondées sur des sources officielles enregistrées dans Nyateƒe,
-              avec les références affichées.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-space-sm rounded-xl bg-surface-container-low p-space-md shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="font-label text-label-md uppercase tracking-wider text-primary">
-                Requêtes fréquentes
-              </span>
-              <MaterialIcon name="bolt" className="text-[18px] text-secondary" />
-            </div>
-            <div className="mt-1 flex flex-col gap-2">
-              {SUGGESTED_QUERIES.map((item) => (
-                <button
-                  key={item.title}
-                  type="button"
-                  onClick={() => {
-                    setQuestion(item.title)
-                    void submitQuestion(item.title)
-                  }}
-                  className="group flex items-start gap-space-xs rounded-lg bg-surface-container-lowest p-space-sm text-left transition-all hover:bg-surface-container"
-                >
-                  <MaterialIcon
-                    name={item.icon}
-                    className="mt-0.5 text-[18px] text-secondary transition-colors group-hover:text-primary"
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-label text-label-md font-semibold text-on-surface">
-                      {item.title}
-                    </span>
-                    <span className="font-body text-[0.75rem] text-on-surface-variant">
-                      {item.hint}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-start gap-space-sm rounded-xl bg-primary-container p-space-md text-surface shadow-md">
-            <MaterialIcon name="policy" className="mt-0.5 text-[22px] text-secondary-container" />
-            <div className="flex flex-col gap-1">
-              <span className="font-label text-label-md text-secondary-container">
-                Avertissement déontologique
-              </span>
-              <p className="font-body text-[0.8rem] leading-normal text-surface">
-                Nyateƒe oriente à partir de textes officiels. Consultez un
-                professionnel du droit pour votre situation concrète.
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
+        <div
+          ref={threadRef}
+          className="flex flex-1 flex-col gap-5 overflow-y-auto rounded-2xl bg-surface-container-low p-space-md"
+        >
+          {turns.length === 0 ? (
+            <div className="flex flex-1 flex-col items-start justify-center gap-3 px-1 py-8">
+              <h2 className="font-headline text-headline-sm text-primary">
+                Posez votre question
+              </h2>
+              <p className="max-w-lg font-body text-body-md text-on-surface-variant">
+                Décrivez les faits et ce que vous cherchez : procédure, délai ou
+                conditions.
               </p>
-            </div>
-          </div>
-        </aside>
-
-        <section className="col-span-12 flex flex-col gap-space-md xl:col-span-8">
-          {result ? (
-            <div className="flex w-full items-start gap-space-sm self-start">
-              <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-container-highest shadow-sm">
-                <MaterialIcon name="balance" className="text-[20px] text-primary" />
-              </div>
-              <div className="flex w-full flex-col gap-space-md rounded-2xl rounded-tl-xs bg-surface-container-lowest p-space-lg shadow-md">
-                <p className="font-label text-label-sm font-semibold uppercase tracking-wide text-primary">
-                  Réponse Nyateƒe
-                </p>
-                <p className="whitespace-pre-wrap font-body text-body-md leading-relaxed text-on-surface">
-                  {result.answer}
-                </p>
-                <SourceList sources={result.sources} />
+              <div className="mt-1 flex flex-wrap gap-2">
+                {shortcuts.slice(0, 3).map((item) => (
+                  <button
+                    key={item.title}
+                    type="button"
+                    onClick={() => void submitQuestion(item.title)}
+                    className="rounded-full bg-surface-container-lowest px-3 py-1.5 font-label text-label-sm text-primary shadow-sm"
+                  >
+                    {item.hint}
+                  </button>
+                ))}
               </div>
             </div>
-          ) : null}
-
-          {error ? (
-            <p className="rounded-lg border border-error/30 bg-error/10 px-3 py-2 font-body text-body-sm text-error">
-              {error}
-            </p>
-          ) : null}
-
-          <form
-            onSubmit={handleSubmit}
-            className="sticky bottom-4 flex w-full flex-col gap-2 rounded-2xl bg-surface-container-lowest p-space-sm shadow-xl"
-          >
-            <div className="flex items-center gap-space-sm rounded-xl bg-surface-container-low px-space-md py-2">
-              <MaterialIcon name="search" className="text-[22px] text-secondary" />
-              <input
-                value={question}
-                onChange={(event) => setQuestion(event.target.value)}
-                placeholder="Posez une question en droit togolais..."
-                className="w-full border-none bg-transparent font-body text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={isLoading || !question.trim()}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary transition-all hover:bg-primary-container disabled:opacity-50"
-              >
-                <MaterialIcon name="send" className="text-[20px]" />
-              </button>
-            </div>
-          </form>
-        </section>
+          ) : (
+            thread
+          )}
+        </div>
+        <div className="mt-4">{composer}</div>
       </div>
     </div>
   )

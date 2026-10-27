@@ -20,7 +20,9 @@ def register_search_routes(bp: Blueprint, pool: ConnectionPool, rag: RagService)
         try:
             query_embedding = rag.embed_query(query)
             with get_conn(pool) as conn:
-                rows = rag.search_similar(conn, query_embedding, top_k=top_k)
+                rows, _used_fallback = rag.search_similar(
+                    conn, query_embedding, top_k=top_k
+                )
         except QueueFullError as exc:
             return jsonify({"error": str(exc)}), 429
         except QueueWaitTimeoutError as exc:

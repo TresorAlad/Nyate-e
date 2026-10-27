@@ -273,6 +273,35 @@ curl -s -X POST http://127.0.0.1:8000/api/chat \
   -d '{"question":"Quelle est la capitale ?"}'
 ```
 
+Stream SSE (graphe agents actif) :
+
+```bash
+curl -N -X POST http://127.0.0.1:8000/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Quels sont les droits du locataire ?"}'
+```
+
+### Agents rapides et retrieval par document
+
+Variables d'environnement utiles (voir `.env.example`) :
+
+| Variable | Rôle |
+|----------|------|
+| `AGENT_GRAPH_ENABLED` | Active le graphe / stream (`true` pour `/api/chat/stream`) |
+| `AGENT_GRAPH_MODE` | `fast` (recommandé) ou `full` |
+| `AGENT_RETRIEVAL_MODE` | `domain`, `document` ou `hybrid` |
+| `AGENT_PARALLEL_DOMAINS` | Nombre de cibles parallèles (domaines ou documents) |
+| `AGENT_DOCUMENT_SCAN_TOP_K` | Fenêtre pour les candidats document vectoriels |
+
+Backfill `domaine` / `document_title` sur les chunks déjà indexés :
+
+```bash
+cd backend && source .venv/bin/activate
+python scripts/backfill_chunk_metadata.py
+```
+
+Frontend : le stream est activé par défaut ; `VITE_CHAT_STREAM=false` force le JSON classique.
+
 ## Évolutions prévues
 
 - Authentification JWT pour l'équipe (remplacer ou compléter la clé d'indexation)

@@ -634,7 +634,7 @@ export function LandingView({ user, onNavigate, onOpenAuth }: LandingViewProps) 
                       </p>
                       <button
                         type="button"
-                        onClick={() => onOpenAuth('signup', 'dashboard', profile.profile)}
+                        onClick={() => onOpenAuth('signup', 'assistant')}
                         className="mt-space-md w-full rounded-lg bg-surface-container-high py-2.5 font-label text-label-md text-primary transition-colors hover:bg-primary-container hover:text-surface"
                       >
                         Créer un compte
