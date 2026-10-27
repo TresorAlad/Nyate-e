@@ -11,3 +11,13 @@ node_modules/
 frontend/dist/
 .DS_Store
 *.local
+
+# Corpus juridique local (indexation VM, ne pas publier sur GitHub)
+/code des personne et des familles.pdf
+/code des personne et des familles Update.pdf
+/code du travail.pdf
+/CODE-GENERAL-DES-IMPOTS-ET-LIVRE-DES-PROCEDURES-FISCALES-OTR-2025 (1).pdf
+/constitution de 2024 mise à jour.pdf
+/Loi lié au donné personnel.pdf
+/LOI_2015_010.pdf
+/LOI_2015_010.txt
